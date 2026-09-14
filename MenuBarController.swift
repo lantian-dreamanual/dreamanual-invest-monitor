@@ -272,18 +272,30 @@ final class MenuBarController: NSObject, ObservableObject {
 
     // MARK: - 定时器
 
-    /// 黄金交易时段：夜盘 21:00-02:30 + 日盘 09:00-15:00（周末休市）
+    /// 黄金交易时段：夜盘 21:00-02:30 + 日盘 09:00-11:30 / 13:30-15:00（周末休市）
     var goldMarketStatus: MarketStatus {
         let cal = Calendar.current
         let weekday = cal.component(.weekday, from: Date())
         // 周末休市
         guard weekday != 1 && weekday != 7 else { return .closed }
         let now = cal.component(.hour, from: Date()) * 60 + cal.component(.minute, from: Date())
-        let inSession = now >= 21 * 60 || now <= 2 * 60 + 30 || (now >= 9 * 60 && now <= 15 * 60)
-        if !inSession { return .closed }
-        // 交易时段但数据不是当前时段 → 延迟
-        if isGoldDataStale { return .delayed }
-        return .trading
+        // 夜盘 21:00-02:30
+        if now >= 21 * 60 || now <= 2 * 60 + 30 {
+            return isGoldDataStale ? .delayed : .trading
+        }
+        // 日盘 09:00-11:30
+        if now >= 9 * 60 && now <= 11 * 60 + 30 {
+            return isGoldDataStale ? .delayed : .trading
+        }
+        // 午休 11:30-13:30
+        if now > 11 * 60 + 30 && now < 13 * 60 + 30 {
+            return .break_
+        }
+        // 日盘 13:30-15:00
+        if now >= 13 * 60 + 30 && now <= 15 * 60 {
+            return isGoldDataStale ? .delayed : .trading
+        }
+        return .closed
     }
 
     /// A股交易时段：09:30-11:30 + 13:00-15:00

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.7",
-  "notes": "优化：基金净值显示精度提升至小数点后 4 位",
+  "version": "1.0.8",
+  "notes": "修复：黄金日盘午休 11:30-13:30 正确识别，分时线不再显示午休时段平线",
   "download_url": "https://dreamanual.com/works/downloads/Dreamanual 投资监控.dmg",
   "release_url": "https://github.com/lantian-dreamanual/invest-monitor/releases"
 }

@@ -3,7 +3,7 @@ import SwiftUI
 /// 分时线图表模式
 enum TrendChartMode {
     case aStock       // A股板块：固定时段 09:30-11:30/13:00-15:00
-    case shfeGold     // 沪金：夜盘 21:00-02:30 + 日盘 09:00-15:00（跨日）
+    case shfeGold     // 沪金：夜盘 21:00-02:30 + 日盘 09:00-11:30 / 13:30-15:00（跨日，午休跳过）
 }
 
 /// 分时线图表：价格线 + 均价线 + 昨收虚线 + 涨跌填充 + 坐标标注 + 底部刻度尺 + hover 十字线
@@ -95,8 +95,10 @@ struct TrendChart: View {
 
     /// 沪金交易分钟数映射
     /// 夜盘 21:00-02:30 = 330 分钟（21:00→0, 02:30→330）
-    /// 日盘 09:00-15:00 = 360 分钟（09:00→330, 15:00→690）
-    /// 总交易时长 690 分钟
+    /// 日盘上午 09:00-11:30 = 150 分钟（09:00→330, 11:30→480）
+    /// 午休 11:30-13:30 跳过（不占 x 轴）
+    /// 日盘下午 13:30-15:00 = 90 分钟（13:30→480, 15:00→570）
+    /// 总交易时长 570 分钟
     private func shfeGoldMinutes(_ datetime: String) -> Double {
         let timePart: String
         if let spaceIdx = datetime.firstIndex(of: " ") {
@@ -109,16 +111,25 @@ struct TrendChart: View {
         let totalMin = h * 60 + m
 
         if totalMin >= 21 * 60 {
+            // 夜盘 21:00-02:30 → 0~330
             return totalMin - 21 * 60
         } else if totalMin <= 2 * 60 + 30 {
+            // 夜盘跨日 → 0~330
             return totalMin + 3 * 60
-        } else if totalMin >= 9 * 60 {
+        } else if totalMin >= 9 * 60 && totalMin <= 11 * 60 + 30 {
+            // 日盘上午 09:00-11:30 → 330~480
             return totalMin - 9 * 60 + 330
+        } else if totalMin > 11 * 60 + 30 && totalMin < 13 * 60 + 30 {
+            // 午休 11:30-13:30 → 归到上午末尾
+            return 480
+        } else if totalMin >= 13 * 60 + 30 {
+            // 日盘下午 13:30-15:00 → 480~570
+            return totalMin - (13 * 60 + 30) + 480
         }
-        return 330
+        return 480
     }
 
-    private static let shfeGoldTotalMinutes: Double = 690
+    private static let shfeGoldTotalMinutes: Double = 570
 
     // MARK: - 布局参数
 
@@ -214,8 +225,10 @@ struct TrendChart: View {
             let midX = chartX + 0.5 * chartW
             drawDashedVLine(context, x: midX, chartY: chartY, chartH: chartH, opacity: 0.15, dash: [4, 4])
         } else if mode == .shfeGold {
-            let nightEndX = chartX + 330.0 / Self.shfeGoldTotalMinutes * chartW
-            drawDashedVLine(context, x: nightEndX, chartY: chartY, chartH: chartH, opacity: 0.15, dash: [4, 4])
+            let nightEndRatio = 330.0 / Self.shfeGoldTotalMinutes
+            let lunchEndRatio = 480.0 / Self.shfeGoldTotalMinutes
+            drawDashedVLine(context, x: chartX + nightEndRatio * chartW, chartY: chartY, chartH: chartH, opacity: 0.15, dash: [4, 4])
+            drawDashedVLine(context, x: chartX + lunchEndRatio * chartW, chartY: chartY, chartH: chartH, opacity: 0.15, dash: [4, 4])
         }
 
         // 3. 昨收水平虚线
@@ -280,9 +293,11 @@ struct TrendChart: View {
             ]
         case .shfeGold:
             let breakRatio = 330.0 / Self.shfeGoldTotalMinutes
+            let lunchRatio = 480.0 / Self.shfeGoldTotalMinutes
             ticks = [
                 ("21:00", 0.0),
                 ("02:30/09:00", breakRatio),
+                ("11:30/13:30", lunchRatio),
                 ("15:00", 1.0)
             ]
         }
