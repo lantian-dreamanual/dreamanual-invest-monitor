@@ -73,6 +73,16 @@ struct FundCard: View {
 
     private var canExpand: Bool { !fund.holdings.isEmpty }
 
+    /// 覆盖度文案：「前 10 大重仓 · 覆盖 62%」
+    private func coverageLabel(_ cov: Double) -> String {
+        let n = fund.holdings.count
+        let pct = Int(cov.rounded())
+        return n > 0 ? "前 \(n) 大重仓 · 覆盖 \(pct)%" : "覆盖 \(pct)%"
+    }
+
+    /// 覆盖度不足一半：估值数字置灰，让它不再被当成权威读数
+    private var isLowCoverage: Bool { (fund.estCoverage ?? 100) < 50 }
+
     var body: some View {
         VStack(spacing: 0) {
             // ===== 净值信息区（整区可点击切换收起/展开） =====
@@ -105,18 +115,27 @@ struct FundCard: View {
                 }
                 .padding(.top, 2)
 
-                // 净值日期 + 盘中估算
+                // 净值日期 + 覆盖度 + 盘中估算
                 HStack(spacing: 8) {
-                    Text("净值日期 \(fund.quote.navDate)")
+                    Text("净值日期 \(DataFreshness.shortDate(fund.quote.navDate))")
                         .font(.system(size: 10))
                         .foregroundColor(.secondary.opacity(0.55))
                     Spacer()
                     if let estNav = fund.estNav {
+                        // 覆盖度必须跟估值一起出现：10 只重仓只有 2 只有行情时，
+                        // 单独一个估值数字看不出它只代表那 2 只
+                        if let cov = fund.estCoverage {
+                            Text(coverageLabel(cov))
+                                .font(.system(size: 10))
+                                .foregroundColor(isLowCoverage ? Color(red: 0.961, green: 0.620, blue: 0.043)
+                                                               : .secondary.opacity(0.55))
+                        }
                         Text(marketStatus == .trading ? "盘中估算" : "今日估算")
                             .font(.system(size: 10))
                             .foregroundColor(.secondary.opacity(0.55))
                         Text(Format.navPrice(estNav))
                             .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(isLowCoverage ? .secondary : .primary)
                     }
                 }
             }

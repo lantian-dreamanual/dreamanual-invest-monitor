@@ -1,6 +1,6 @@
 {
-  "version": "1.0.8",
-  "notes": "修复：黄金日盘午休 11:30-13:30 正确识别，分时线不再显示午休时段平线",
+  "version": "1.0.9",
+  "notes": "预警改按收盘判定价触发，支持连续多日确认、同品种合并提醒与每日一次去重；行情源增加多网关自动降级和基金备源，数据延迟超 10 分钟会在面板标出分钟数；非交易日显示「已收盘」，重启后立即恢复上次数据；更换新应用图标。",
   "download_url": "https://dreamanual.com/works/downloads/Dreamanual 投资监控.dmg",
   "release_url": "https://github.com/lantian-dreamanual/invest-monitor/releases"
 }

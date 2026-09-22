@@ -1,6 +1,28 @@
 import SwiftUI
 import AppKit
 
+// ============ 规则行状态 ============
+
+/// 规则行的状态种类，优先级从高到低：hit > counting > confirmed > dead > last > none
+///
+/// 两条优先级规则：
+///   · `hit` 排在 `counting`/`confirmed` 前面 —— 否则用户永远看不到「今日已触发」那一天
+///   · `dead` 排在 `counting`/`confirmed` 之后 —— 「没拿到行情」是数据运行态，
+///     「连续第几天」是长期结论；让前者盖掉后者，一次网络抖动就把「纪律还在成立」藏起来了
+enum AlertRowKind {
+    case hit        // 今日推送过 —— 唯一「要你动手」的状态
+    case counting   // 已在触发区、天数未满
+    case confirmed  // 纪律已成立（连续 N 日）
+    case dead       // 判定价拿不到
+    case last       // 非今日的旧结论
+    case none       // 还没判过
+}
+
+struct AlertRowState {
+    let kind: AlertRowKind
+    let text: String
+}
+
 /// 预警规则列表（嵌入设置页卡片内）：按标的分组展示 + 增删 + 组折叠
 struct AlertRuleList: View {
     @ObservedObject var controller: MenuBarController
@@ -108,7 +130,10 @@ struct AlertGroupView: View {
     let isCollapsed: Bool
     let onToggleCollapse: () -> Void
 
-    private var hasTriggered: Bool { group.rules.contains { $0.triggered && $0.enabled } }
+    /// 今日有命中 —— 唯一值得给组头染色的事
+    private var hasTodayHit: Bool {
+        group.rules.contains { $0.enabled && controller.alertRowState(for: $0).kind == .hit }
+    }
     private var allDisabled: Bool { group.rules.allSatisfy { !$0.enabled } }
 
     var body: some View {
@@ -128,8 +153,8 @@ struct AlertGroupView: View {
                         .font(.system(size: 10))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 1)
-                        .background(hasTriggered ? Color.orange.opacity(0.15) : Color.secondary.opacity(0.12))
-                        .foregroundColor(hasTriggered ? .orange : .secondary)
+                        .background(hasTodayHit ? Color.red.opacity(0.15) : Color.secondary.opacity(0.12))
+                        .foregroundColor(hasTodayHit ? .red : .secondary)
                         .cornerRadius(6)
                     Spacer()
                     AppIcon(name: "chevron-right", size: 10)
@@ -198,27 +223,35 @@ struct AlertRuleRow: View {
                             RoundedRectangle(cornerRadius: 6)
                                 .stroke(directionColor.opacity(0.45), lineWidth: 0.8)
                         )
-                    Text(formatThreshold(rule))
+                    Text(AlertFormat.threshold(rule))
                         .font(.callout)
                         .fontWeight(.medium)
                         .monospacedDigit()
                         .foregroundColor(rule.enabled ? .primary : .secondary)
+                    if rule.effectiveConfirmDays > 1 {
+                        Text("确认 \(rule.effectiveConfirmDays) 日")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                    // 显式复位价必须露出来：否则它成了「看不见也改不掉」的隐形配置
+                    if let rs = rule.resetThreshold {
+                        Text("复位 \(AlertFormat.value(rule, rs))")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
                 }
 
-                // 第二行：动作提示 / 触发状态
+                // 第二行：状态（由事件表派生，不是配置文案）
                 HStack(spacing: 4) {
-                    if rule.triggered, let t = rule.triggeredAt {
-                        AppIcon(name: "check-circle", size: 10)
-                            .foregroundColor(.orange)
-                        Text("已触发 \(t, format: .dateTime.hour().minute())")
-                            .font(.caption2)
-                            .foregroundColor(.orange)
-                    } else {
-                        Text(rule.label)
-                            .font(.caption2)
-                            .foregroundColor(rule.enabled ? .secondary : .secondary)
-                            .lineLimit(1)
+                    if let icon = stateIcon {
+                        AppIcon(name: icon, size: 10)
+                            .foregroundColor(stateColor)
                     }
+                    Text(state.text)
+                        .font(.caption2)
+                        .fontWeight(stateWeight)
+                        .foregroundColor(stateColor)
+                        .lineLimit(1)
                 }
             }
 
@@ -253,27 +286,37 @@ struct AlertRuleRow: View {
         }
     }
 
+    private var state: AlertRowState { controller.alertRowState(for: rule) }
+
+    private var stateColor: Color {
+        switch state.kind {
+        case .hit: return .red
+        case .dead: return Color(red: 0.961, green: 0.620, blue: 0.043)   // #F59E0B 琥珀
+        default: return .secondary
+        }
+    }
+
+    private var stateWeight: Font.Weight {
+        switch state.kind {
+        case .counting, .confirmed: return .medium
+        default: return .regular
+        }
+    }
+
+    private var stateIcon: String? {
+        switch state.kind {
+        case .hit: return "check-circle"
+        case .dead: return "warning"
+        default: return nil
+        }
+    }
+
     private var directionText: String {
         rule.direction == .above ? "↑ 止盈" : "↓ 止损"
     }
 
     private var directionColor: Color {
         rule.direction == .above ? .red : .green
-    }
-
-    private func formatThreshold(_ r: AlertRule) -> String {
-        switch r.targetType {
-        case .goldCNY:
-            return String(format: "%.2f", r.threshold)
-        case .sector:
-            return String(format: "%.2f%%", r.threshold)
-        case .fund:
-            // 净值模式显示价位，涨跌幅模式显示百分比
-            if r.fundMetric == .changePct {
-                return String(format: "%.2f%%", r.threshold)
-            }
-            return String(format: "%.3f", r.threshold)
-        }
     }
 }
 
@@ -289,6 +332,9 @@ struct AddAlertSheet: View {
     @State private var threshold = ""
     @State private var label = ""
     @State private var fundMetric: FundMetric = .nav
+    @State private var confirmDays = "1"
+    /// 复位价：留空 = 交回 0.5% 兜底迟滞带（与源系统口径一致）
+    @State private var resetThreshold = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -361,16 +407,11 @@ struct AddAlertSheet: View {
                     .onChange(of: fundMetric) { _ in
                         threshold = ""
                     }
-                    // 提示：基金预警只通过官方净值触发
-                    HStack(spacing: 4) {
-                        AppIcon(name: "info", size: 10)
-                            .foregroundColor(.secondary)
-                    }
                 }
             }
 
-            // 方向 + 阈值
-            HStack(spacing: 12) {
+            // 方向 + 阈值 + 确认天数
+            HStack(alignment: .top, spacing: 10) {
                 FormSection("方向") {
                     SegmentedTabs(
                         items: [AlertDirection.above, AlertDirection.below],
@@ -378,17 +419,43 @@ struct AddAlertSheet: View {
                         label: { d in d == .above ? "≥ 涨到" : "≤ 跌到" },
                         style: .compact
                     )
-                    .frame(width: 160)
+                    .frame(width: 148)
                 }
-                Spacer()
+                Spacer(minLength: 0)
                 FormSection("阈值") {
-                    FormTextField(placeholder: thresholdPlaceholder, text: $threshold, width: 100)
+                    FormTextField(placeholder: thresholdPlaceholder, text: $threshold, width: 84)
+                }
+                FormSection("确认天数") {
+                    FormTextField(placeholder: "1", text: $confirmDays, width: 52)
+                }
+            }
+
+            // 复位价：可选。留空 = 交回 0.5% 兜底迟滞带
+            FormSection("复位价") {
+                VStack(alignment: .leading, spacing: 4) {
+                    FormTextField(placeholder: "可选", text: $resetThreshold, width: 84)
+                    HStack(spacing: 4) {
+                        AppIcon(name: resetError == nil ? "info" : "warning", size: 10)
+                            .foregroundColor(resetError == nil ? .secondary : .red)
+                        Text(resetError ?? "留空按触发价 0.5% 自动留迟滞带")
+                            .font(.system(size: 10))
+                            .foregroundColor(resetError == nil ? .secondary : .red)
+                    }
                 }
             }
 
             // 动作提示
             FormSection("提醒文案（动作提示）") {
                 FormTextField(placeholder: "第1档止盈 · 建议卖1/3", text: $label)
+            }
+
+            // 确认天数说明：只有这里能解释「连续几天才算数」这件事
+            HStack(spacing: 4) {
+                AppIcon(name: "info", size: 10)
+                    .foregroundColor(.secondary)
+                Text("确认天数：连续几个判定价日站在触发区内才提醒（1–10，默认 1）")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
             }
 
             Spacer()
@@ -404,20 +471,29 @@ struct AddAlertSheet: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Color.brandGold)
-                .disabled(threshold.isEmpty || label.isEmpty)
+                .disabled(threshold.isEmpty || label.isEmpty || resetError != nil)
             }
         }
         .padding(16)
-        .frame(width: 360, height: 440)
+        .frame(width: 380, height: 500)
         .fixedSize(horizontal: false, vertical: true)
     }
-
-
 
     private var thresholdPlaceholder: String {
         if targetType == .goldCNY { return "700.00" }
         if targetType == .fund && fundMetric == .nav { return "1.50" }
         return "-2.50"
+    }
+
+    /// 确认天数：非法或 ≤1 都存 nil（= 与旧行为一致，不写多余的字段）
+    private var parsedConfirmDays: Int? {
+        guard let d = Int(confirmDays.trimmingCharacters(in: .whitespaces)), d > 1 else { return nil }
+        return min(d, 10)
+    }
+
+    /// 复位价校验结果：nil = 合法（留空也合法）
+    private var resetError: String? {
+        AlertResetInput.error(text: resetThreshold, thresholdText: threshold, direction: direction)
     }
 
     private func addRule() {
@@ -433,7 +509,9 @@ struct AddAlertSheet: View {
             enabled: true,
             triggered: false,
             triggeredAt: nil,
-            fundMetric: targetType == .fund ? fundMetric : nil
+            fundMetric: targetType == .fund ? fundMetric : nil,
+            confirmDays: parsedConfirmDays,
+            resetThreshold: AlertResetInput.parse(text: resetThreshold)
         )
         controller.alertConfig.add(rule)
     }
@@ -445,7 +523,6 @@ struct AddAlertSheet: View {
         case .fund: return "基金"
         }
     }
-
 }
 
 /// 编辑规则弹窗（复用添加弹窗字段，预填当前值）
@@ -461,6 +538,9 @@ struct EditAlertSheet: View {
     @State private var threshold: String
     @State private var label: String
     @State private var fundMetric: FundMetric
+    @State private var confirmDays: String
+    /// 复位价：从规则照搬，空串 = 这条线没有显式复位价（保存时写回 nil，等于删键）
+    @State private var resetThreshold: String
 
     init(controller: MenuBarController, rule: AlertRule, isPresented: Binding<Bool>) {
         self.controller = controller
@@ -473,6 +553,8 @@ struct EditAlertSheet: View {
         _threshold = State(initialValue: String(format: "%.3f", rule.threshold))
         _label = State(initialValue: rule.label)
         _fundMetric = State(initialValue: rule.fundMetric ?? .nav)
+        _confirmDays = State(initialValue: String(rule.effectiveConfirmDays))
+        _resetThreshold = State(initialValue: AlertResetInput.editText(rule.resetThreshold))
     }
 
     var body: some View {
@@ -547,15 +629,11 @@ struct EditAlertSheet: View {
                     .onChange(of: fundMetric) { _ in
                         threshold = ""
                     }
-                    HStack(spacing: 4) {
-                        AppIcon(name: "info", size: 10)
-                            .foregroundColor(.secondary)
-                    }
                 }
             }
 
-            // 方向 + 阈值
-            HStack(spacing: 12) {
+            // 方向 + 阈值 + 确认天数
+            HStack(alignment: .top, spacing: 10) {
                 FormSection("方向") {
                     SegmentedTabs(
                         items: [AlertDirection.above, AlertDirection.below],
@@ -563,17 +641,42 @@ struct EditAlertSheet: View {
                         label: { d in d == .above ? "≥ 涨到" : "≤ 跌到" },
                         style: .compact
                     )
-                    .frame(width: 120)
+                    .frame(width: 148)
                 }
-                Spacer()
+                Spacer(minLength: 0)
                 FormSection("阈值") {
-                    FormTextField(placeholder: thresholdPlaceholder, text: $threshold, width: 100)
+                    FormTextField(placeholder: thresholdPlaceholder, text: $threshold, width: 84)
+                }
+                FormSection("确认天数") {
+                    FormTextField(placeholder: "1", text: $confirmDays, width: 52)
+                }
+            }
+
+            // 复位价：可选。留空 = 交回 0.5% 兜底迟滞带
+            FormSection("复位价") {
+                VStack(alignment: .leading, spacing: 4) {
+                    FormTextField(placeholder: "可选", text: $resetThreshold, width: 84)
+                    HStack(spacing: 4) {
+                        AppIcon(name: resetError == nil ? "info" : "warning", size: 10)
+                            .foregroundColor(resetError == nil ? .secondary : .red)
+                        Text(resetError ?? "留空按触发价 0.5% 自动留迟滞带")
+                            .font(.system(size: 10))
+                            .foregroundColor(resetError == nil ? .secondary : .red)
+                    }
                 }
             }
 
             // 动作提示
             FormSection("提醒文案（动作提示）") {
                 FormTextField(placeholder: "第1档止盈 · 建议卖1/3", text: $label)
+            }
+
+            HStack(spacing: 4) {
+                AppIcon(name: "info", size: 10)
+                    .foregroundColor(.secondary)
+                Text("确认天数：连续几个判定价日站在触发区内才提醒（1–10，默认 1）")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
             }
 
             Spacer()
@@ -589,11 +692,11 @@ struct EditAlertSheet: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Color.brandGold)
-                .disabled(threshold.isEmpty || label.isEmpty)
+                .disabled(threshold.isEmpty || label.isEmpty || resetError != nil)
             }
         }
         .padding(16)
-        .frame(width: 360, height: 440)
+        .frame(width: 380, height: 500)
         .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -601,6 +704,16 @@ struct EditAlertSheet: View {
         if targetType == .goldCNY { return "700.00" }
         if targetType == .fund && fundMetric == .nav { return "1.50" }
         return "-2.50"
+    }
+
+    private var parsedConfirmDays: Int? {
+        guard let d = Int(confirmDays.trimmingCharacters(in: .whitespaces)), d > 1 else { return nil }
+        return min(d, 10)
+    }
+
+    /// 复位价校验结果：nil = 合法（留空也合法）
+    private var resetError: String? {
+        AlertResetInput.error(text: resetThreshold, thresholdText: threshold, direction: direction)
     }
 
     private func saveRule() {
@@ -613,6 +726,10 @@ struct EditAlertSheet: View {
         updated.threshold = thr
         updated.label = label
         updated.fundMetric = targetType == .fund ? fundMetric : nil
+        updated.confirmDays = parsedConfirmDays
+        // 留空 → nil，等于删掉这个键（交回 0.5% 兜底）；不能写成「沿用旧值」，
+        // 否则界面上清空了复位价、实际判定仍按老复位价走 —— 屏幕和纪律不一致
+        updated.resetThreshold = AlertResetInput.parse(text: resetThreshold)
         controller.alertConfig.update(updated)
     }
 

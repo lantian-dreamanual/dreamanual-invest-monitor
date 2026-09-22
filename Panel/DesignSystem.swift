@@ -46,42 +46,62 @@ enum MarketStatus: Equatable {
     case closed    // 已收盘
 }
 
+/// 状态文案与配色的**单一来源**
+///
+/// 原先同一句话散在三处：枚举、badge 里的 switch、控制器的字符串赋值。
+/// 改文案要记住改三个地方，漏一个就出现「徽标说已收盘、右上角说交易中」。
+/// 现在枚举只负责 kind，文案只在这里出现一次，控制器与徽标都从这里取。
+struct StatusDescriptor: Equatable {
+    enum Tone { case live, warn, quiet }
+
+    let text: String
+    let tone: Tone
+
+    static let trading = StatusDescriptor(text: "交易中", tone: .live)
+    static let delayed = StatusDescriptor(text: "数据延迟", tone: .warn)
+    static let break_ = StatusDescriptor(text: "午休", tone: .quiet)
+    static let closed = StatusDescriptor(text: "已收盘", tone: .quiet)
+    /// 场内休市、场外净值在披露（15:00–21:00）—— 面板状态用，不对应某个市场
+    static let navUpdating = StatusDescriptor(text: "净值更新中", tone: .quiet)
+
+    static func of(_ s: MarketStatus) -> StatusDescriptor {
+        switch s {
+        case .trading: return .trading
+        case .delayed: return .delayed
+        case .break_: return .break_
+        case .closed: return .closed
+        }
+    }
+
+    var color: Color {
+        switch tone {
+        case .live: return .brandGold
+        case .warn: return Color(red: 0.961, green: 0.620, blue: 0.043)  // #F59E0B
+        case .quiet: return .secondary.opacity(0.55)
+        }
+    }
+
+    var background: Color {
+        switch tone {
+        case .live: return Color.brandGold.opacity(0.15)
+        case .warn: return Color(red: 0.961, green: 0.620, blue: 0.043).opacity(0.15)
+        case .quiet: return .panelBackground
+        }
+    }
+}
+
 /// 交易状态标签
 struct MarketStatusBadge: View {
     let status: MarketStatus
 
-    private var text: String {
-        switch status {
-        case .trading: return "交易中"
-        case .delayed: return "数据延迟"
-        case .break_: return "午休"
-        case .closed: return "已收盘"
-        }
-    }
-
-    private var textColor: Color {
-        switch status {
-        case .trading: return .brandGold
-        case .delayed: return Color(red: 0.961, green: 0.620, blue: 0.043)  // #F59E0B
-        default: return .secondary.opacity(0.55)
-        }
-    }
-
-    private var bgColor: Color {
-        switch status {
-        case .trading: return Color.brandGold.opacity(0.15)
-        case .delayed: return Color(red: 0.961, green: 0.620, blue: 0.043).opacity(0.15)
-        default: return Color.panelBackground
-        }
-    }
-
     var body: some View {
-        Text(text)
+        let d = StatusDescriptor.of(status)
+        Text(d.text)
             .font(.system(size: 10, weight: .medium))
             .padding(.horizontal, 6)
             .padding(.vertical, 1)
-            .background(bgColor)
-            .foregroundColor(textColor)
+            .background(d.background)
+            .foregroundColor(d.color)
             .cornerRadius(6)
     }
 }
@@ -315,15 +335,20 @@ struct MarketCard<Content: View>: View {
     }
 
     var body: some View {
-        content
-            .frame(maxWidth: .infinity)
-            .padding(14)
-            .background(Color.cardBackground)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.cardBorder, lineWidth: 0.5)
-            )
+        // 与 SettingsCard 同源风险：content 若是多个平铺子视图（TupleView），下面这组
+        // modifier 会逐个分发到每个子视图上，卡片被打散成多个小块。先收进 spacing:0
+        // 的 VStack 再套样式，将来调用点怎么写都不会重演。
+        VStack(spacing: 0) {
+            content
+        }
+        .frame(maxWidth: .infinity)
+        .padding(14)
+        .background(Color.cardBackground)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.cardBorder, lineWidth: 0.5)
+        )
     }
 }
 
@@ -336,23 +361,31 @@ struct SettingsCard<Content: View>: View {
     }
 
     var body: some View {
-        content
-            .background(Color.cardBackground)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.cardBorder, lineWidth: 0.5)
-            )
+        // 内容先收进 spacing:0 的 VStack：content 若是多个平铺子视图（ViewBuilder 的
+        // TupleView），下面这组 modifier 会**逐个分发到每个子视图**上 —— 背景与描边
+        // 各画一遍，一张卡片被打散成 N 个独立小卡片，行间还会多出隐式间距。
+        VStack(spacing: 0) {
+            content
+        }
+        .background(Color.cardBackground)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.cardBorder, lineWidth: 0.5)
+        )
     }
 }
 
-/// 统一行情头部：标签 + 状态 → 大价格 → 涨跌 + 次要信息
+/// 统一行情头部：标签 + 状态 → 大价格 → 涨跌 + 次要信息 + 行情时间
 struct PriceHeader: View {
     let title: String
     let marketStatus: MarketStatus?      // nil = 不显示状态标签
     let price: String               // 格式化后的价格文本
     let changePct: Double           // 涨跌幅 %
     let secondary: String?          // 可选次要信息，如 "成交额 12.3亿"
+    /// 行情**自身**时间（f124）。区别于右上角的刷新倒计时 ——
+    /// 那个说的是「下一次什么时候抓」，这个说的是「这份数是什么时候的」
+    var quoteAt: Date? = nil
 
     var body: some View {
         VStack(spacing: 4) {
@@ -371,8 +404,8 @@ struct PriceHeader: View {
                 .font(.system(size: 34, weight: .bold, design: .rounded))
                 .foregroundColor(Color.trend(changePct))
 
-            // 涨跌幅 + 次要信息
-            HStack(spacing: 16) {
+            // 涨跌幅 + 次要信息 + 行情时间
+            HStack(spacing: 12) {
                 Text(Format.pct(changePct))
                     .font(.callout.weight(.semibold))
                     .foregroundColor(Color.trend(changePct))
@@ -380,6 +413,13 @@ struct PriceHeader: View {
                     Text(sec)
                         .font(.caption2)
                         .foregroundColor(.secondary)
+                }
+                Spacer(minLength: 6)
+                if let fresh = DataFreshness.display(quoteAt: quoteAt, status: marketStatus ?? .closed) {
+                    Text(fresh.text)
+                        .font(.system(size: 10))
+                        .foregroundColor(fresh.isStale ? StatusDescriptor.delayed.color : .secondary.opacity(0.55))
+                        .lineLimit(1)
                 }
             }
         }

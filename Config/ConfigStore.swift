@@ -42,15 +42,51 @@ final class ConfigStore: ObservableObject {
         didSet { save() }
     }
 
+    /// 本次启动时被跳过的坏配置项数（0 = 全部完好）。
+    /// 设置页用它提示「N 项配置已重置」——不提示的话，用户只会发现自己少了两只基金
+    @Published var repairedCount = 0
+
     private let key = "com.dreamanual.investmonitor.WatchConfig"
 
+    /// 逐项解码
+    ///
+    /// 原先整体 `try?` 解码：一条坏记录就让整份配置退回 `.default`，
+    /// 用户的自选板块与基金全部消失且毫无提示。现在坏项跳过并计数，
+    /// 其余照常保留 —— 坏的是那一项，不是整份配置。
     init() {
-        if let data = UserDefaults.standard.data(forKey: key),
-           let cfg = try? JSONDecoder().decode(WatchConfig.self, from: data) {
-            self.config = cfg
-        } else {
-            self.config = .default
+        let r = Self.decode(UserDefaults.standard.data(forKey: key))
+        self.config = r.config
+        self.repairedCount = r.repaired
+    }
+
+    /// 纯函数版本（不碰 UserDefaults），便于自检直接构造坏数据
+    static func decode(_ data: Data?) -> (config: WatchConfig, repaired: Int) {
+        guard let data,
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return (.default, 0)
         }
+        var repaired = 0
+        let sectors: [SectorConfig] = decodeList(root["sectors"], repair: &repaired)
+        let funds: [FundConfig] = decodeList(root["funds"], repair: &repaired)
+        return (
+            WatchConfig(sectors: sectors, funds: funds,
+                        statusBarSource: root["statusBarSource"] as? String),
+            repaired
+        )
+    }
+
+    private static func decodeList<T: Decodable>(_ any: Any?, repair: inout Int) -> [T] {
+        guard let arr = any as? [Any] else { return [] }
+        var out: [T] = []
+        for item in arr {
+            guard let d = try? JSONSerialization.data(withJSONObject: item),
+                  let v = try? JSONDecoder().decode(T.self, from: d) else {
+                repair += 1
+                continue
+            }
+            out.append(v)
+        }
+        return out
     }
 
     private func save() {

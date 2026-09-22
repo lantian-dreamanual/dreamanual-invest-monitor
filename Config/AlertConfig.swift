@@ -9,12 +9,32 @@ final class AlertConfig: ObservableObject {
     private let key = "com.dreamanual.investmonitor.AlertRules"
 
     init() {
-        if let data = UserDefaults.standard.data(forKey: key),
-           let r = try? JSONDecoder().decode([AlertRule].self, from: data) {
-            self.rules = r
-        } else {
+        guard let data = UserDefaults.standard.data(forKey: key) else {
             self.rules = AlertConfig.defaultRules
+            return
         }
+        self.rules = AlertConfig.decodeRules(data)
+    }
+
+    /// 逐项解码：**一条坏规则不会让整份配置退回默认**。
+    /// 整体 `try?` 解码的后果是用户自定义的线静默消失 —— 那比丢弃一条更糟。
+    private static func decodeRules(_ data: Data) -> [AlertRule] {
+        guard let raw = try? JSONSerialization.jsonObject(with: data) as? [Any] else {
+            return defaultRules
+        }
+        let decoder = JSONDecoder()
+        var out: [AlertRule] = []
+        var dropped = 0
+        for item in raw {
+            guard let d = try? JSONSerialization.data(withJSONObject: item),
+                  let r = try? decoder.decode(AlertRule.self, from: d) else {
+                dropped += 1
+                continue
+            }
+            out.append(r)
+        }
+        if dropped > 0 { print("[预警规则] \(dropped) 条配置无法解析，已跳过") }
+        return out
     }
 
     private func save() {
@@ -42,16 +62,6 @@ final class AlertConfig: ObservableObject {
     func toggle(_ rule: AlertRule) {
         guard let i = rules.firstIndex(where: { $0.id == rule.id }) else { return }
         rules[i].enabled.toggle()
-    }
-
-    /// 更新规则状态（触发/恢复）
-    func updateStatus(at index: Int, triggered: Bool) {
-        guard index < rules.count else { return }
-        if triggered {
-            rules[index].markTriggered()
-        } else {
-            rules[index].reset()
-        }
     }
 
     /// 全局暂停/恢复

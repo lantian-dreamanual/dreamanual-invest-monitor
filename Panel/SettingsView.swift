@@ -286,6 +286,39 @@ struct SettingsView: View {
                     }
                 }
 
+                // ===== 运行状态（只读）：回答「这份数从哪来、日历管到什么时候」 =====
+                VStack(alignment: .leading, spacing: 5) {
+                    sectionHeader(title: "运行状态", trailing: EmptyView())
+
+                    SettingsCard {
+                        // 多行内容收在一个 VStack 里：与页面其它卡片写法一致
+                        VStack(spacing: 0) {
+                            statusRow("交易日历", "覆盖至 \(TradingCalendar.coveredUntil)")
+                            Divider().opacity(0.4)
+                            statusRow("黄金数据源", sourceName(controller.gold?.source))
+                            Divider().opacity(0.4)
+                            statusRow("板块数据源", sourceName(controller.sector?.source))
+                            Divider().opacity(0.4)
+                            statusRow("基金数据源", sourceName(controller.funds.first?.quote.source))
+
+                            // 坏配置提示：不提示的话，用户只会发现自己少了两只基金
+                            if controller.configStore.repairedCount > 0 {
+                                Divider().opacity(0.4)
+                                HStack(spacing: 6) {
+                                    AppIcon(name: "warning", size: 12)
+                                        .foregroundColor(.orange)
+                                    Text("\(controller.configStore.repairedCount) 项配置无法读取，已重置")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.orange)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 9)
+                            }
+                        }
+                    }
+                }
+
                 // ===== 退出程序（独立卡片） =====
                 VStack(alignment: .leading, spacing: 5) {
                     SettingsCard {
@@ -331,6 +364,29 @@ struct SettingsView: View {
             trailing
         }
         .frame(height: 28)
+    }
+
+    // MARK: - 运行状态行
+
+    /// 只读状态行：左标签右值
+    private func statusRow(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 13))
+            Spacer()
+            Text(value)
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+    }
+
+    /// 数据源名：空串与 nil 都显示占位符，避免出现一行空白让人以为界面坏了
+    private func sourceName(_ s: String?) -> String {
+        guard let s, !s.isEmpty else { return "—" }
+        return s
     }
 
     // MARK: - 更新检查状态文案

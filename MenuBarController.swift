@@ -32,6 +32,10 @@ final class MenuBarController: NSObject, ObservableObject {
     @Published var goldTrendData: TrendData?   // 黄金分时
     // M6 预警
     @Published var alertConfig: AlertConfig
+    /// 无判定价留痕：ruleId → 首次拿不到判定价的时刻（有价时自愈清掉）
+    @Published var unjudgedRules: [String: Date] = [:]
+    /// 事件表快照（ruleId → 最新一行）：规则行状态从这里派生，避免每行一次查库
+    @Published var alertEvents: [String: AlertEventStore.Event] = [:]
     // 刷新倒计时（秒），右上角展示「x 秒后更新」
     @Published var countdown = 30
     // 右上角状态文案
@@ -48,6 +52,9 @@ final class MenuBarController: NSObject, ObservableObject {
     private var localEventMonitor: Any?
     private var timer: Timer?
     private var countdownTimer: Timer?
+    /// 上一轮刷新的时刻（定时器按窗口分档要用）
+    private var lastRefreshAt: Date?
+    private var wakeObserver: NSObjectProtocol?
     private let service = GoldService()
     private let sectorService = SectorService()
     private let fundService = FundService()
@@ -60,6 +67,8 @@ final class MenuBarController: NSObject, ObservableObject {
         self.currentSectorCode = store.config.sectors.first?.code ?? "BK0475"
         self.alertConfig = AlertConfig()
         super.init()
+        // 先把事件表快照读进来，规则行首屏就有状态
+        refreshAlertEvents()
         // configStore 变化转发到 controller，驱动 SwiftUI 视图刷新
         store.objectWillChange.sink { [weak self] in
             self?.objectWillChange.send()
@@ -76,7 +85,17 @@ final class MenuBarController: NSObject, ObservableObject {
             }
         }
         setupStatusItem()
+        // 再把上一轮行情铺上，冷启动不出现空窗（首轮请求回来即覆盖）
+        //
+        // ⚠️ 必须排在 setupStatusItem() 之后：本函数末尾要调 updateStatusTitle()，
+        //    而 statusItem 是隐式解包可选，在它被创建之前解包会直接 SIGTRAP。
+        //    2026-09-22 实测踩到：编译/签名全绿，一启动就退，crash 报告指到
+        //    restoreSnapshot → updateStatusTitle。之所以潜伏很久才暴露，是因为
+        //    SnapshotStore.save() 只在抓取成功路径上调用，之前一直抓不到数据、
+        //    快照从未写成功，每次冷启动都在快照判空处提前 return。
+        restoreSnapshot()
         setupPanel()
+        observeWake()
         startTimer()
         // 启动后延迟 2 秒检查更新（避免与启动刷新竞争网络）
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
@@ -132,7 +151,9 @@ final class MenuBarController: NSObject, ObservableObject {
 
     /// 更新状态栏文字：根据配置显示黄金或板块指数，交易时段带箭头
     func updateStatusTitle() {
-        guard let button = statusItem.button else { return }
+        // statusItem 由 setupStatusItem() 创建。init 早期（快照回填）也会走到这里，
+        // 那时它还是 nil —— 隐式解包会 SIGTRAP，所以先显式判空
+        guard statusItem != nil, let button = statusItem.button else { return }
         let source = configStore.config.statusBarSource ?? "gold"
 
         if source == "gold" {
@@ -272,75 +293,111 @@ final class MenuBarController: NSObject, ObservableObject {
 
     // MARK: - 定时器
 
-    /// 黄金交易时段：夜盘 21:00-02:30 + 日盘 09:00-11:30 / 13:30-15:00（周末休市）
+    /// 黄金交易时段：夜盘 21:00-02:30 + 日盘 09:00-11:30 / 13:30-15:00
+    ///
+    /// 交易日判定走 TradingCalendar（含法定节假日）；陈旧判定统一走 DataFreshness。
+    /// 原先黄金用分时线最后点算 120s 阈值，板块完全没有 —— 同一件事两套口径，
+    /// 结果是三个 Tab 的「延迟」表现不一致。
     var goldMarketStatus: MarketStatus {
-        let cal = Calendar.current
-        let weekday = cal.component(.weekday, from: Date())
-        // 周末休市
-        guard weekday != 1 && weekday != 7 else { return .closed }
-        let now = cal.component(.hour, from: Date()) * 60 + cal.component(.minute, from: Date())
+        guard TradingCalendar.isTradingDay() else { return .closed }
+        let now = minuteOfDay
         // 夜盘 21:00-02:30
-        if now >= 21 * 60 || now <= 2 * 60 + 30 {
-            return isGoldDataStale ? .delayed : .trading
-        }
+        if now >= 21 * 60 || now <= 2 * 60 + 30 { return sessionStatus(gold?.quoteAt) }
         // 日盘 09:00-11:30
-        if now >= 9 * 60 && now <= 11 * 60 + 30 {
-            return isGoldDataStale ? .delayed : .trading
-        }
+        if now >= 9 * 60 && now <= 11 * 60 + 30 { return sessionStatus(gold?.quoteAt) }
         // 午休 11:30-13:30
-        if now > 11 * 60 + 30 && now < 13 * 60 + 30 {
-            return .break_
-        }
+        if now > 11 * 60 + 30 && now < 13 * 60 + 30 { return .break_ }
         // 日盘 13:30-15:00
-        if now >= 13 * 60 + 30 && now <= 15 * 60 {
-            return isGoldDataStale ? .delayed : .trading
-        }
+        if now >= 13 * 60 + 30 && now <= 15 * 60 { return sessionStatus(gold?.quoteAt) }
         return .closed
     }
 
     /// A股交易时段：09:30-11:30 + 13:00-15:00
+    ///
+    /// 这里原先永远只返回 .trading / .closed，从不返回 .delayed ——
+    /// 板块接口卡住时界面照旧显示「交易中」，看不出数据已经不动了
     var stockMarketStatus: MarketStatus {
-        let cal = Calendar.current
-        let weekday = cal.component(.weekday, from: Date())
-        // 周末休市
-        guard weekday != 1 && weekday != 7 else { return .closed }
-        let now = cal.component(.hour, from: Date()) * 60 + cal.component(.minute, from: Date())
-        if now >= 9 * 60 + 30 && now <= 11 * 60 + 30 { return .trading }
+        guard TradingCalendar.isTradingDay() else { return .closed }
+        let now = minuteOfDay
+        let quoteAt = sector?.quoteAt ?? allSectors.first?.quoteAt
+        if now >= 9 * 60 + 30 && now <= 11 * 60 + 30 { return sessionStatus(quoteAt) }
         if now > 11 * 60 + 30 && now < 13 * 60 { return .break_ }
-        if now >= 13 * 60 && now <= 15 * 60 { return .trading }
+        if now >= 13 * 60 && now <= 15 * 60 { return sessionStatus(quoteAt) }
         return .closed
     }
 
-    /// 黄金分时数据是否过期（最后一个数据点距今超过 2 分钟）
-    private var isGoldDataStale: Bool {
-        guard let lastPoint = goldTrendData?.points.last else { return true }
-        let dfmt = DateFormatter()
-        dfmt.dateFormat = "yyyy-MM-dd HH:mm"
-        dfmt.timeZone = TimeZone(identifier: "Asia/Shanghai")
-        guard let lastDate = dfmt.date(from: lastPoint.time) else { return true }
-        return Date().timeIntervalSince(lastDate) > 120
+    /// 交易时段内的状态：陈旧则 delayed。
+    ///
+    /// 从未拿到过行情（quoteAt 为 nil）时归 .trading 而不是 .delayed ——
+    /// 「市场状态」与「数据有没有到手」是两件事，后者由 errorMessage 与
+    /// 预警规则行的「未生效 · 无行情」表达。否则每次启动的头几秒都在喊延迟。
+    private func sessionStatus(_ quoteAt: Date?) -> MarketStatus {
+        guard let at = quoteAt else { return .trading }
+        return DataFreshness.isStale(at) ? .delayed : .trading
     }
 
-    /// 任一市场在交易时段（含数据延迟）则刷新；全部休市则停止
-    private var anyMarketOpen: Bool {
-        goldMarketStatus == .trading || goldMarketStatus == .delayed || stockMarketStatus == .trading
+    private var minuteOfDay: Int {
+        let c = Calendar.current
+        return c.component(.hour, from: Date()) * 60 + c.component(.minute, from: Date())
     }
 
-    /// 后台常驻定时器：任一市场交易时段每 30 秒刷新，全部休市时自动暂停
+    /// 净值窗口：交易日 15:05 之后
+    ///
+    /// 这一段原本是死区 —— 黄金日盘 15:00 收、夜盘 21:00 才开，A 股 15:00 收，
+    /// 于是 15:00–21:00 刷新门禁恒为 false，而基金净值 15:05 起就陆续披露了。
+    ///
+    /// 「交易日」用 TradingCalendar 而不是「非周末」：国庆长假里净值不披露，
+    /// 按非周末算会连着七天做无用请求，还会把「净值日期没变」误判成异常。
+    var fundNavWindow: Bool {
+        TradingCalendar.isTradingDay() && minuteOfDay >= 15 * 60 + 5
+    }
+
+    /// 有任一窗口开着就该刷新
+    private var shouldRefresh: Bool {
+        if goldMarketStatus == .trading || goldMarketStatus == .delayed { return true }
+        if stockMarketStatus == .trading || stockMarketStatus == .delayed { return true }
+        return fundNavWindow
+    }
+
+    /// 刷新间隔按窗口分档
+    ///   · 交易时段 30s —— 告警判定挂在刷新上，面板开不开都一样
+    ///   · 净值窗口：面板收起 5 分钟（净值一天只变一次），面板打开 60s
+    ///   · 其余 5 分钟（实际走不到，shouldRefresh 已经拦住）
+    private var refreshInterval: TimeInterval {
+        if goldMarketStatus == .trading || goldMarketStatus == .delayed { return 30 }
+        if stockMarketStatus == .trading || stockMarketStatus == .delayed { return 30 }
+        if fundNavWindow { return panel?.isVisible == true ? 60 : 300 }
+        return 300
+    }
+
+    /// 后台常驻定时器：心跳 30 秒，实际刷新按当前窗口的档位决定
     private func startTimer() {
         guard timer == nil else { return }
         let t = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
             guard let self else { return }
-            if self.anyMarketOpen {
-                Task { await self.refresh() }
-            }
+            guard self.shouldRefresh else { return }
+            if let last = self.lastRefreshAt,
+               Date().timeIntervalSince(last) < self.refreshInterval - 1 { return }
+            Task { await self.refresh() }
         }
         t.tolerance = 5
         RunLoop.main.add(t, forMode: .common)
         timer = t
         startCountdownTimer()
-        // 启动立即刷新
+        // 启动立即刷新（这一轮天然完成「启动补判」）
         Task { await refresh() }
+    }
+
+    /// 睡眠唤醒后补判
+    ///
+    /// Mac 睡一下午，收盘判定的那一刻正好错过，那条线当天就永远不响了。
+    /// 补判判据用事件表（「这条线的今天 pdate 有没有行」）而不是时间戳 —— 后者不可靠。
+    private func observeWake() {
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { await self?.refresh() }
+        }
     }
 
     /// 每秒倒计时，驱动右上角文案
@@ -350,22 +407,31 @@ final class MenuBarController: NSObject, ObservableObject {
             guard let self else { return }
             let gold = self.goldMarketStatus
             let stock = self.stockMarketStatus
-            let anyTrading = gold == .trading || gold == .delayed || stock == .trading
+            let anyTrading = gold == .trading || gold == .delayed
+                || stock == .trading || stock == .delayed
             let anyBreak = gold == .break_ || stock == .break_
+            // 倒计时要跟着实际档位走，否则净值窗口里会一直显示「30 秒后更新」
+            // 而实际 5 分钟才刷一次
+            let span = Int(self.refreshInterval)
 
             if anyTrading {
                 self.allMarketsClosed = false
                 if self.isLoading { return }
                 self.countdown -= 1
-                if self.countdown <= 0 { self.countdown = 30 }
+                if self.countdown <= 0 { self.countdown = span }
             } else if anyBreak {
                 self.allMarketsClosed = false
                 self.countdown = 0
-                self.panelStatusText = "午休"
+                self.panelStatusText = StatusDescriptor.break_.text
+            } else if self.fundNavWindow {
+                // 15:05–21:00：场内休市，但场外净值在陆续披露
+                self.allMarketsClosed = false
+                self.countdown = 0
+                self.panelStatusText = StatusDescriptor.navUpdating.text
             } else {
                 self.allMarketsClosed = true
                 self.countdown = 0
-                self.panelStatusText = "已收盘"
+                self.panelStatusText = StatusDescriptor.closed.text
             }
         }
         t.tolerance = 0.2
@@ -383,53 +449,104 @@ final class MenuBarController: NSObject, ObservableObject {
         defer {
             isRefreshing = false
             isLoading = false
-            countdown = 30
+            // 对齐当前档位，而不是写死 30
+            countdown = Int(refreshInterval)
+            lastRefreshAt = Date()
         }
         // 板块被删除后，修正当前选中到第一个可用板块
         if !configStore.config.sectors.contains(where: { $0.code == currentSectorCode }) {
             currentSectorCode = configStore.config.sectors.first?.code ?? "BK0475"
         }
+        let sectorCodes = configStore.config.sectors.map { $0.code }
+        let sectorName = configStore.config.sectors.first(where: { $0.code == currentSectorCode })?.name ?? ""
+
+        // 每个族各自降级：一族抓不到只影响它自己。
+        // 此前五路 async let 共用一个 try，任一路失败就整块跳到 catch —— 基金明明
+        // 取到了也被一起放弃，面板只剩一句「（已显示上次数据）」，看起来像全网都挂了。
+        var failures: [String] = []
+        var goldOK = false
+        var sectorOK = false
+
+        // 黄金族：现价 + 分时线（国际品种，独立拉取）
         do {
-            let sectorCodes = configStore.config.sectors.map { $0.code }
-            let sectorName = configStore.config.sectors.first(where: { $0.code == currentSectorCode })?.name ?? ""
-            async let goldTask = service.fetch()
-            // 当前板块：指数 + 成分股 + 分时线
-            async let sectorTask = sectorService.fetchIndex(code: currentSectorCode, name: sectorName)
+            self.gold = try await service.fetch()
+            goldOK = true
+        } catch {
+            failures.append("黄金 \(Self.failureLabel(error))")
+        }
+        do {
+            self.goldTrendData = try await sectorService.fetchGoldTrends()
+        } catch {
+            failures.append("黄金分时 \(Self.failureLabel(error))")
+        }
+
+        // 板块族：指数 + 成分股 + 分时线（同一族的三个面，任一失败按该族没拿到算）
+        do {
+            async let indexTask = sectorService.fetchIndex(code: currentSectorCode, name: sectorName)
             async let stocksTask = sectorService.fetchStocks(code: currentSectorCode)
             async let trendsTask = sectorService.fetchTrends(code: currentSectorCode, name: sectorName)
-            // 黄金分时线（国际品种，独立拉取）
-            async let goldTrendsTask = sectorService.fetchGoldTrends()
-            let (g, s, st, td, gtd) = try await (goldTask, sectorTask, stocksTask, trendsTask, goldTrendsTask)
-            self.gold = g
+            let (s, st, td) = try await (indexTask, stocksTask, trendsTask)
             self.sector = s
             self.sectorStocks = st
             self.trendData = td
-            self.goldTrendData = gtd
+            sectorOK = true
+        } catch {
+            failures.append("板块 \(Self.failureLabel(error))")
+        }
 
-            // 所有板块指数（用于 Tab 快速切换）
-            if sectorCodes.count > 1 {
-                let sectorQuotes = try await sectorService.fetchIndices(codes: sectorCodes, names: configStore.config.sectors.map { $0.name })
-                self.allSectors = sectorQuotes
-            } else {
+        // 所有板块指数（Tab 快切用）：与当前板块各算各的，失败不回退已取到的当前板块
+        if sectorCodes.count > 1 {
+            if let list = try? await sectorService.fetchIndices(
+                codes: sectorCodes,
+                names: configStore.config.sectors.map { $0.name }
+            ) {
+                self.allSectors = list
+            } else if sectorOK, let s = self.sector {
                 self.allSectors = [s]
             }
+        } else if sectorOK, let s = self.sector {
+            self.allSectors = [s]
+        }
 
-            // M4 基金：净值 + 重仓 + 实时行情估算
-            await self.refreshFunds()
+        // M4 基金：净值 + 重仓 + 实时行情估算
+        let fundOK = await self.refreshFunds()
 
+        if failures.isEmpty {
             self.lastUpdate = Date()
             self.errorMessage = nil
-            self.updateStatusTitle()
-
-            // M6 预警检查
-            self.checkAlerts()
-        } catch let error as FetchError {
-            self.errorMessage = "\(error.localizedDescription)（已显示上次数据）"
-            // 保留旧数据
-        } catch {
-            self.errorMessage = "更新失败，请稍后重试"
+        } else {
+            self.errorMessage = failures.joined(separator: "；") + "（已显示上次数据）"
         }
+        self.updateStatusTitle()
+
+        // 落盘快照：确有族刷新了才写，全失败时不必把旧数据重复存一遍
+        if goldOK || sectorOK || fundOK {
+            SnapshotStore.save(gold: self.gold, sector: self.sector,
+                               sectors: self.allSectors, funds: self.funds)
+        }
+
+        // M6 预警检查：只评估本轮真抓到的族。
+        // 保留旧数据。整族抓取失败也要走一轮判定 —— 拿不到判定价的线必须留痕，
+        // 否则你在规则列表上看不出那条线已经一天没在工作
+        var succeeded: Set<AlertTargetType> = []
+        if goldOK { succeeded.insert(.goldCNY) }
+        if sectorOK { succeeded.insert(.sector) }
+        if fundOK { succeeded.insert(.fund) }
+        self.checkAlerts(scope: AlertScope(
+            attempted: [.goldCNY, .sector, .fund], succeeded: succeeded
+        ))
     }
+
+    /// 族级失败的简短文案。
+    /// 「无行情」＝这一轮没抓到（下一轮会自愈）；「数据异常」＝抓到了但解析不了（真 bug）。
+    /// 面板上按族列出，用户一眼能看出是哪一块坏了，而不是笼统一句「更新失败」。
+    private static func failureLabel(_ error: Error) -> String {
+        guard let e = error as? FetchError else { return "更新失败" }
+        switch e {
+        case .allSourcesFailed, .noConnection, .timeout, .badResponse: return "无行情"
+        case .invalidData: return "数据异常"
+        }
+        }
 
     /// 当前板块代码
     private var currentSector: String {
@@ -437,14 +554,22 @@ final class MenuBarController: NSObject, ObservableObject {
     }
 
     /// 刷新基金：净值 → 重仓 → 批量行情 → 估算
+    /// - Returns: 本轮基金数据是否可用（决定基金族的规则是否参与判定）
     @MainActor
-    func refreshFunds() async {
+    @discardableResult
+    func refreshFunds() async -> Bool {
         // 立即移除已从配置删除的基金，UI 瞬间反映
         let validCodes = Set(configStore.config.funds.map { $0.code })
         self.funds = self.funds.filter { validCodes.contains($0.quote.code) }
 
         do {
             let details = try await fundService.fetchAll(codes: configStore.config.funds.map { $0.code })
+            // 配了基金却一条都没解析出来 → 按抓取失败处理，
+            // 否则该族规则会被当成「有数据」而漏掉「无行情」留痕
+            if !configStore.config.funds.isEmpty && details.isEmpty {
+                self.fundErrorMessage = "基金数据解析为空"
+                return false
+            }
             // 合并所有重仓股，去重
             var holdings: [(code: String, exchange: Int)] = []
             var seen = Set<String>()
@@ -463,29 +588,32 @@ final class MenuBarController: NSObject, ObservableObject {
             // 时段限制在当日 9:30 之后——开盘前重仓股无当日行情，估算无意义
             // 收盘后到净值发布前保留当日估算快照作为参考
             // 净值已更新到今日则估算无意义，不再计算
-            let today = Self.todayString()
-            let cal = Calendar.current
-            let weekday = cal.component(.weekday, from: Date())
-            let isTradingDay = weekday != 1 && weekday != 7 // 周一~周五（节假日未做映射）
-            let nowMinute = cal.component(.hour, from: Date()) * 60 + cal.component(.minute, from: Date())
-            let afterOpen = nowMinute >= 9 * 60 + 30 // 已过 9:30
+            let today = MarketClock.today()
+            // 交易日走 TradingCalendar：长假里净值不更新，按「非周末」算会
+            // 连着一周做无用估算，还会把「净值日期没变」误判成异常
+            let isTradingDay = TradingCalendar.isTradingDay()
+            let afterOpen = minuteOfDay >= 9 * 60 + 30 // 已过 9:30
             var updated = details
             for i in updated.indices {
                 guard isTradingDay, afterOpen, updated[i].quote.navDate != today else { continue }
-                let pct = FundEstimator.estimateChangePct(holdings: updated[i].holdings, stockMap: changes)
-                updated[i].estChangePct = pct
-                if let pct {
+                let est = FundEstimator.estimate(holdings: updated[i].holdings, stockMap: changes)
+                updated[i].estChangePct = est?.pct
+                updated[i].estCoverage = est?.coverage
+                if let pct = est?.pct {
                     updated[i].estNav = FundEstimator.estimateNav(nav: updated[i].quote.nav, changePct: pct)
                 }
             }
             self.funds = updated
             self.fundStockChanges = changes
             self.fundErrorMessage = nil
+            return true
         } catch let error as FetchError {
             self.fundErrorMessage = "基金数据\(error.localizedDescription)"
             // 基金失败不阻塞主流程，保留旧数据
+            return false
         } catch {
             self.fundErrorMessage = "基金数据更新失败"
+            return false
         }
     }
 
@@ -518,30 +646,93 @@ final class MenuBarController: NSObject, ObservableObject {
 
     // MARK: - 预警
 
-    /// 预警检查：比对最新数据与所有规则，触发通知 + 管理状态
+    /// 预警检查：日终判定 → 落事件表 → 合并推送 → 无判定价留痕
     @MainActor
-    func checkAlerts() {
-        let values = AlertEngine.extractValues(
-            gold: gold, sectors: allSectors, funds: funds
-        )
-        let (triggerIdx, resetIdx) = AlertEngine.checkAll(
-            rules: alertConfig.rules, values: values
+    func checkAlerts(scope: AlertScope) {
+        let result = AlertEngine.evaluate(
+            rules: alertConfig.rules, gold: gold, sectors: allSectors, funds: funds,
+            scope: scope, today: MarketClock.today(), now: Date(),
+            store: AlertEventStore.shared
         )
 
-        // 触发通知
-        for i in triggerIdx {
-            let rule = alertConfig.rules[i]
-            let key = AlertEngine.ruleKey(rule)
-            if let value = values[key] {
-                notifier.sendNotification(rule: rule, currentValue: value)
+        applyUnjudged(result)
+
+        // 同品种同日多条线命中 → 合并为一条（一次暴跌同时击穿两条线时，
+        // 两条高度重叠的通知反而削弱警报的严肃性）
+        for group in AlertEngine.grouped(result.pending) {
+            var notice = AlertEngine.notice(from: group.main)
+            notice.rest = group.rest.map { AlertEngine.notice(from: $0) }
+            notifier.sendNotification(notice)
+            // 标记「这一天推送过了」—— 频控最后一道（判定价没变就不再推）用的就是它
+            for e in [group.main] + group.rest {
+                AlertEventStore.shared.markNotified(ruleId: e.rule.id, pdate: e.pdate)
             }
-            alertConfig.updateStatus(at: i, triggered: true)
         }
 
-        // 恢复已触发规则
-        for i in resetIdx {
-            alertConfig.updateStatus(at: i, triggered: false)
+        refreshAlertEvents()
+    }
+
+    /// 刷新事件表快照，驱动规则行重算
+    private func refreshAlertEvents() {
+        alertEvents = AlertEventStore.shared.latest()
+    }
+
+    /// 冷启动回填：把上一轮快照铺到界面上
+    ///
+    /// 只负责消除空白，不做任何判定 —— 这些数据带着自己的行情时间戳，
+    /// 时效提示会照实显示「截至 09-22 15:00」，不会伪装成刚抓到的
+    private func restoreSnapshot() {
+        guard let snap = SnapshotStore.load() else { return }
+        if let g = snap.gold?.quote { gold = g }
+        if let s = snap.sector?.quote { sector = s }
+        if !snap.sectors.isEmpty { allSectors = snap.sectors.map(\.quote) }
+        if !snap.funds.isEmpty { funds = snap.funds.map(\.detail) }
+        updateStatusTitle()
+    }
+
+    /// 规则行的状态呈现（五种 kind，优先级 hit > counting > confirmed > dead > last > none）
+    ///
+    /// 两条优先级规则：
+    ///   · `hit` 排在 state 前面 —— 否则用户永远看不到「今日已触发」那一天
+    ///   · `dead` 排在 `counting` / `confirmed` 之后 —— 「没拿到行情」是数据运行态，
+    ///     「连续第几天」是长期结论；让前者盖掉后者，一次网络抖动就把「纪律还在成立」藏起来了
+    func alertRowState(for rule: AlertRule) -> AlertRowState {
+        let today = MarketClock.today()
+        if let ev = alertEvents[rule.id] {
+            if ev.state == .confirmed, ev.notified, ev.pdate == today {
+                return AlertRowState(kind: .hit, text: "今日已触发")
+            }
+            switch ev.state {
+            case .counting:
+                return AlertRowState(kind: .counting,
+                                     text: "第 \(ev.days)/\(rule.effectiveConfirmDays) 天")
+            case .confirmed:
+                return AlertRowState(kind: .confirmed, text: "连续 \(ev.days) 天")
+            case .idle:
+                break
+            }
         }
+        if unjudgedRules[rule.id] != nil {
+            return AlertRowState(kind: .dead, text: "未生效 · 无行情")
+        }
+        if let ev = alertEvents[rule.id] {
+            return AlertRowState(kind: .last, text: "最近判定 \(ev.pdate)")
+        }
+        return AlertRowState(kind: .none, text: rule.label)
+    }
+
+    /// 无判定价留痕与自愈
+    ///
+    /// 只在**首次**标记时写时间：持续无行情时时间戳稳定，否则每轮都变，
+    /// 界面轮询到变化就重绘，且看不出「从什么时候开始没行情」。
+    private func applyUnjudged(_ result: AlertEvalResult) {
+        var next = unjudgedRules
+        for m in result.missing where next[m.ruleId] == nil {
+            next[m.ruleId] = Date()
+        }
+        // 有判定价的一轮要清掉标记，否则一次网络抖动会永久挂着「未生效」
+        for id in result.judged { next[id] = nil }
+        if next != unjudgedRules { unjudgedRules = next }
     }
 
     /// 通知点击：通过规则 ID 查找标的类型，切换到对应 Tab 并打开面板

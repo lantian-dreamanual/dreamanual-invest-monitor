@@ -225,7 +225,8 @@ struct GoldView: View {
                             marketStatus: controller.goldMarketStatus,
                             price: String(format: "¥%.2f", g.priceCNY),
                             changePct: g.changePct,
-                            secondary: nil
+                            secondary: nil,
+                            quoteAt: g.quoteAt
                         )
                     }
 

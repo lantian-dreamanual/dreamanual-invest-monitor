@@ -58,17 +58,14 @@ final class AlertNotifier: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    /// 发送预警通知
-    func sendNotification(rule: AlertRule, currentValue: Double) {
-        let dirText = rule.direction == .above ? "涨到" : "跌到"
-        let valueText = formatValue(rule: rule, value: currentValue)
-        let thresholdText = formatThreshold(rule: rule)
-        let body = "\(rule.targetName) 已\(dirText) \(valueText)（阈值 \(thresholdText)）\n\(rule.label)"
-        let title = "\(rule.targetName) 到价提醒"
+    /// 发送预警通知。标题与正文由 `AlertNotice` 成型（带天数、判定价、同时命中）
+    func sendNotification(_ notice: AlertNotice) {
+        let title = notice.title
+        let body = notice.body
 
         // 先尝试 UNUserNotificationCenter
         if unAvailable != false {
-            sendViaUN(rule: rule, title: title, body: body)
+            sendViaUN(notice: notice, title: title, body: body)
         }
 
         // 如果 UN 确认不可用，或作为双保险，同时用 osascript
@@ -83,14 +80,19 @@ final class AlertNotifier: NSObject, UNUserNotificationCenterDelegate {
     }
 
     /// 通过 UNUserNotificationCenter 发送
-    private func sendViaUN(rule: AlertRule, title: String, body: String) {
+    ///
+    /// identifier 带**判定价日**：同一线同一判定价日只推一次，不同日期各自留痕。
+    /// 直接用 `rule.id` 的后果是新通知顶掉旧的，通知中心倒推不出历史。
+    private func sendViaUN(notice: AlertNotice, title: String, body: String) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
+        // 点击回跳要的规则 ID 走 userInfo —— identifier 带了日期后缀，不能再当 ID 用
+        content.userInfo = ["ruleId": notice.rule.id]
 
         let request = UNNotificationRequest(
-            identifier: rule.id,
+            identifier: "\(notice.rule.id)-\(notice.pdate)",
             content: content,
             trigger: UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
         )
@@ -114,36 +116,6 @@ final class AlertNotifier: NSObject, UNUserNotificationCenterDelegate {
         try? task.run()
     }
 
-    /// 格式化当前值
-    private func formatValue(rule: AlertRule, value: Double) -> String {
-        switch rule.targetType {
-        case .goldCNY:
-            return String(format: "%.2f", value)
-        case .sector:
-            return String(format: "%.2f%%", value)
-        case .fund:
-            if rule.fundMetric == .changePct {
-                return String(format: "%.2f%%", value)
-            }
-            return String(format: "%.3f", value)
-        }
-    }
-
-    /// 格式化阈值
-    private func formatThreshold(rule: AlertRule) -> String {
-        switch rule.targetType {
-        case .goldCNY:
-            return String(format: "%.2f", rule.threshold)
-        case .sector:
-            return String(format: "%.2f%%", rule.threshold)
-        case .fund:
-            if rule.fundMetric == .changePct {
-                return String(format: "%.2f%%", rule.threshold)
-            }
-            return String(format: "%.3f", rule.threshold)
-        }
-    }
-
     // MARK: - UNUserNotificationCenterDelegate
 
     func userNotificationCenter(
@@ -161,7 +133,9 @@ final class AlertNotifier: NSObject, UNUserNotificationCenterDelegate {
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        let ruleId = response.notification.request.identifier
+        // identifier 是「rule.id-pdate」，规则 ID 从 userInfo 取（UUID 本身也含 "-"，不能拆字符串）
+        let ruleId = response.notification.request.content.userInfo["ruleId"] as? String
+            ?? response.notification.request.identifier
         onNotificationTap?(ruleId)
         completionHandler()
     }

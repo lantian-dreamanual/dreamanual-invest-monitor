@@ -26,5 +26,11 @@ Package.resolved
 .temp/
 *.log
 
+# 本地产物：图标换代的备份（AppIcon.icns.bak-YYYYMMDD）
+*.bak-*
+
+# WorkBuddy 项目记忆与工作区（仓库公开，不发布内部工作记录）
+.workbuddy/
+
 # Code signing
 *_CodeSignature/

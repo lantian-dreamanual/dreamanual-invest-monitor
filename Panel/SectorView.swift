@@ -31,7 +31,8 @@ struct SectorView: View {
                             marketStatus: controller.stockMarketStatus,
                             price: Format.price(s.index),
                             changePct: s.changePct,
-                            secondary: nil
+                            secondary: nil,
+                            quoteAt: s.quoteAt
                         )
                     }
                 }
