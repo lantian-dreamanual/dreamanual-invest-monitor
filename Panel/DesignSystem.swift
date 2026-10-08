@@ -2,41 +2,17 @@ import SwiftUI
 
 // ============ 设计系统：共享组件 ============
 
-/// 品牌主色：金色（对齐 App 图标 #E9B832），金融产品深色+金色格调
-extension Color {
-    static let brandGold = Color(red: 0.914, green: 0.722, blue: 0.196)  // #E9B832
-    static let brandGoldBright = Color(red: 0.957, green: 0.812, blue: 0.349)  // #F4CF59 亮金（选中态文字）
-    static let brandGoldDim = Color(red: 0.914, green: 0.722, blue: 0.196).opacity(0.6)  // 聚焦弱化
-    /// 选中态深色底：金调深褐 #42351C，与金色系统一
-    static let brandSelectedBG = Color(red: 0.259, green: 0.208, blue: 0.110)  // #42351C
-}
-
-/// 配色：Pillow 像素级取色自 macOS 系统设置深色模式截图
-/// 面板底 #23282C / 卡片底 #2A2F32 / 斑马纹浅行 #35393C / 斑马纹深行 #2A2F32
-extension Color {
-    /// 面板底色 #23282C
-    static let panelBackground = Color(nsColor: NSColor(name: nil) { appearance in
-        if appearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil {
-            return NSColor(srgbRed: 0.137, green: 0.157, blue: 0.173, alpha: 1)
-        } else {
-            return NSColor.windowBackgroundColor
-        }
-    })
-    /// 卡片底色 #2A2F32
-    static let cardBackground = Color(nsColor: NSColor(name: nil) { appearance in
-        if appearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil {
-            return NSColor(srgbRed: 0.165, green: 0.184, blue: 0.196, alpha: 1)
-        } else {
-            return NSColor.controlBackgroundColor
-        }
-    })
-    /// 斑马纹浅行 #35393C
-    static let zebraLight = Color(red: 0.208, green: 0.224, blue: 0.235)
-    /// 斑马纹深行 #2A2F32（同卡片底）
-    static let zebraDark = Color(red: 0.165, green: 0.184, blue: 0.196)
-    /// 卡片描边 #36383C
-    static let cardBorder = Color(red: 0.212, green: 0.220, blue: 0.235)
-}
+// 配色不在本文件里。色值全部来自 DreamanualTheme.invest.swift（design/build.mjs 生成，
+// 请勿手改），本文件只负责「哪个角色用哪个令牌」。改色 → 改 design/tokens.json → 重跑
+// build.mjs → 用 scripts/check-tokens.mjs 同步并校验。
+//
+// 令牌角色速查（细节见 design/docs/design-system.md 第二节）：
+//   dmAccent      强调文字 / 图标 / 描边
+//   dmAccent2     选中态文字 / 焦点环 / 悬停文字
+//   dmAccentFill  承载元素的实心块底（按钮、开关打开态、徽章）
+//   dmAccentSoft  选中态底（与 dmAccent2 配对）
+//   dmPanel / dmPanel2 / dmPanel3   面板 / 卡片 / 高亮行，依次提亮
+//   dmInk / dmInk2 / dmInk3         三级正文，依次变暗
 
 /// 交易状态
 enum MarketStatus: Equatable {
@@ -73,19 +49,22 @@ struct StatusDescriptor: Equatable {
         }
     }
 
+    /// 徽章的字色取各族的**亮档**（`-ink` / `accent-2`），因为它是压在自己那族的
+    /// 深色底上（见下面的 `background`）；族基色只压中性底 —— 族色压本族 soft 底
+    /// 到不了 4.5:1（red-500 压 red-950 只有 4.29:1，四个族都一样）。见设计系统第三节。
     var color: Color {
         switch tone {
-        case .live: return .brandGold
-        case .warn: return Color(red: 0.961, green: 0.620, blue: 0.043)  // #F59E0B
-        case .quiet: return .secondary.opacity(0.55)
+        case .live: return .dmAccent2
+        case .warn: return .dmWarnInk
+        case .quiet: return .dmInk3
         }
     }
 
     var background: Color {
         switch tone {
-        case .live: return Color.brandGold.opacity(0.15)
-        case .warn: return Color(red: 0.961, green: 0.620, blue: 0.043).opacity(0.15)
-        case .quiet: return .panelBackground
+        case .live: return .dmAccentSoft
+        case .warn: return .dmWarnSoft
+        case .quiet: return .dmPanel
         }
     }
 }
@@ -109,7 +88,8 @@ struct MarketStatusBadge: View {
 // ============ 设计系统：分段控件 ============
 
 /// 自定义分段控件：对齐 macOS Tahoe 系统设置样式
-/// 选中态 = 品牌金色填充 + 白字；未选中 = 透明 + 次要色文字
+/// 选中态 = `dmAccentSoft` 深底 + `dmAccent2` 亮字（与密码管理、视频下载同一套表达）；
+/// 未选中 = 透明 + 次要色文字
 /// 解决 nonactivatingPanel 下系统分段控件选中态变灰的问题
 struct SegmentedTabs<T: Hashable>: View {
     let items: [T]
@@ -132,14 +112,14 @@ struct SegmentedTabs<T: Hashable>: View {
                 } label: {
                     Text(label(item))
                         .font(.system(size: 12, weight: selected ? .medium : .regular))
-                        .foregroundColor(selected ? Color.brandGoldBright : .secondary)
+                        .foregroundColor(selected ? Color.dmAccent2 : Color.dmInk2)
                         .lineLimit(1)
                         .padding(.horizontal, style == .default ? 16 : 12)
                         .padding(.vertical, 6)
                         .frame(maxWidth: .infinity)
                         .background(
                             RoundedRectangle(cornerRadius: 7)
-                                .fill(Color.zebraLight)
+                                .fill(Color.dmAccentSoft)
                                 .opacity(selected ? 1 : 0)
                         )
                         .contentShape(Rectangle())
@@ -149,11 +129,11 @@ struct SegmentedTabs<T: Hashable>: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 7)
-                .fill(Color.panelBackground)
+                .fill(Color.dmPanel)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 7)
-                .stroke(Color.zebraLight, lineWidth: 1)
+                .stroke(Color.dmLine2, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 7))
     }
@@ -162,7 +142,7 @@ struct SegmentedTabs<T: Hashable>: View {
 // ============ 设计系统：自定义图标 ============
 
 /// 统一加载 app bundle 内的 Lucide 图标（PNG template 模式）
-/// 用法：AppIcon("gear", size: 14).foregroundColor(.secondary)
+/// 用法：AppIcon("gear", size: 14).foregroundColor(Color.dmInk2)
 struct AppIcon: View {
     let name: String
     var size: CGFloat = 14
@@ -207,11 +187,11 @@ struct IconButton: View {
     var body: some View {
         Button(action: action) {
             AppIcon(name: iconName, size: 14)
-                .foregroundColor(isHovered ? .primary : .secondary)
+                .foregroundColor(isHovered ? Color.dmInk : Color.dmInk2)
                 .frame(width: 28, height: 28)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.white.opacity(isHovered ? 0.12 : 0))
+                        .fill(isHovered ? Color.dmPanel3 : Color.clear)
                 )
         }
         .buttonStyle(.plain)
@@ -226,12 +206,12 @@ struct GoldToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
         Button(action: { configuration.isOn.toggle() }) {
             RoundedRectangle(cornerRadius: 9.5, style: .continuous)
-                .fill(configuration.isOn ? Color.brandGold : Color.secondary.opacity(0.3))
+                .fill(configuration.isOn ? Color.dmAccentFill : Color.dmPanel3)
                 .frame(width: 32, height: 19)
                 .overlay(
                     GeometryReader { geo in
                         Circle()
-                            .fill(configuration.isOn ? Color(red: 0.13, green: 0.15, blue: 0.16) : Color.white)
+                            .fill(configuration.isOn ? Color.dmOnAccent : Color.dmInk)
                             .frame(width: 13, height: 13)
                             .offset(
                                 x: configuration.isOn ? geo.size.width - 15 : 2,
@@ -254,12 +234,12 @@ struct FormLabel: View {
     var body: some View {
         Text(text)
             .font(.system(size: 12))
-            .foregroundColor(.secondary)
+            .foregroundColor(Color.dmInk2)
     }
 }
 
 /// 自定义输入框：可见边框 + 聚焦高亮，解决系统默认边框不可见问题
-/// - 高度 28pt，圆角 6pt，底色对齐分段导航选中态 zebraLight，边框 cardBorder 常态 / 金色聚焦
+/// - 高度 28pt，圆角 6pt，底色 `dmPanel3`（高亮行档），边框 `dmLine2` 常态 / `dmAccent2` 聚焦
 struct FormTextField: View {
     let placeholder: String
     @Binding var text: String
@@ -274,11 +254,11 @@ struct FormTextField: View {
             .focused($isFocused)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
-            .background(Color.zebraLight)
+            .background(Color.dmPanel3)
             .overlay(
                 RoundedRectangle(cornerRadius: 6)
                     .stroke(
-                        isFocused ? Color.brandGold.opacity(0.7) : Color.cardBorder,
+                        isFocused ? Color.dmAccent2 : Color.dmLine2,
                         lineWidth: isFocused ? 1.5 : 0.5
                     )
             )
@@ -317,11 +297,11 @@ struct FormCard<Content: View>: View {
     var body: some View {
         content
             .padding(14)
-            .background(Color.cardBackground)
+            .background(Color.dmPanel2)
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.cardBorder, lineWidth: 0.5)
+                    .stroke(Color.dmLine2, lineWidth: 0.5)
             )
     }
 }
@@ -343,11 +323,11 @@ struct MarketCard<Content: View>: View {
         }
         .frame(maxWidth: .infinity)
         .padding(14)
-        .background(Color.cardBackground)
+        .background(Color.dmPanel2)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.cardBorder, lineWidth: 0.5)
+                .stroke(Color.dmLine2, lineWidth: 0.5)
         )
     }
 }
@@ -367,11 +347,11 @@ struct SettingsCard<Content: View>: View {
         VStack(spacing: 0) {
             content
         }
-        .background(Color.cardBackground)
+        .background(Color.dmPanel2)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.cardBorder, lineWidth: 0.5)
+                .stroke(Color.dmLine2, lineWidth: 0.5)
         )
     }
 }
@@ -393,7 +373,7 @@ struct PriceHeader: View {
             HStack(spacing: 6) {
                 Text(title)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color.dmInk2)
                 if let status = marketStatus {
                     MarketStatusBadge(status: status)
                 }
@@ -412,13 +392,13 @@ struct PriceHeader: View {
                 if let sec = secondary {
                     Text(sec)
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.dmInk2)
                 }
                 Spacer(minLength: 6)
                 if let fresh = DataFreshness.display(quoteAt: quoteAt, status: marketStatus ?? .closed) {
                     Text(fresh.text)
                         .font(.system(size: 10))
-                        .foregroundColor(fresh.isStale ? StatusDescriptor.delayed.color : .secondary.opacity(0.55))
+                        .foregroundColor(fresh.isStale ? StatusDescriptor.delayed.color : Color.dmInk3)
                         .lineLimit(1)
                 }
             }

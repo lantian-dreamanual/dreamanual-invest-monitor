@@ -54,14 +54,14 @@ struct SettingsView: View {
                             if controller.configStore.config.sectors.isEmpty {
                                 Text("暂无板块，点击 + 添加")
                                     .font(.system(size: 12))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(Color.dmInk2)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
                             } else {
                                 ForEach(Array(controller.configStore.config.sectors.enumerated()), id: \.element.code) { idx, s in
                                     HStack {
                                         Text(s.name).font(.system(size: 13))
-                                        Text(s.code).font(.system(size: 11)).foregroundColor(.secondary)
+                                        Text(s.code).font(.system(size: 11)).foregroundColor(Color.dmInk2)
                                         Spacer()
                                     }
                                     .padding(.horizontal, 14)
@@ -114,14 +114,14 @@ struct SettingsView: View {
                             if controller.configStore.config.funds.isEmpty {
                                 Text("暂无基金，点击 + 添加")
                                     .font(.system(size: 12))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(Color.dmInk2)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
                             } else {
                                 ForEach(Array(controller.configStore.config.funds.enumerated()), id: \.element.code) { idx, f in
                                     HStack {
                                         Text(f.name).font(.system(size: 13))
-                                        Text(f.code).font(.system(size: 11)).foregroundColor(.secondary)
+                                        Text(f.code).font(.system(size: 11)).foregroundColor(Color.dmInk2)
                                         Spacer()
                                     }
                                     .padding(.horizontal, 14)
@@ -203,7 +203,7 @@ struct SettingsView: View {
                                 Spacer()
                                 Text("v\(controller.updateChecker.currentVersion)")
                                     .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(Color.dmInk2)
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 9)
@@ -238,7 +238,7 @@ struct SettingsView: View {
                                     if controller.updateChecker.manualCheckStatus == .checking {
                                         Text("检查中…")
                                             .font(.system(size: 11))
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(Color.dmInk2)
                                     } else {
                                         Text(statusText(controller.updateChecker.manualCheckStatus))
                                             .font(.system(size: 11))
@@ -277,7 +277,7 @@ struct SettingsView: View {
                                         .font(.system(size: 13))
                                     Spacer()
                                 }
-                                .foregroundColor(.brandGold)
+                                .foregroundColor(Color.dmAccent)
                             }
                             .buttonStyle(.plain)
                             .padding(.horizontal, 14)
@@ -306,10 +306,10 @@ struct SettingsView: View {
                                 Divider().opacity(0.4)
                                 HStack(spacing: 6) {
                                     AppIcon(name: "warning", size: 12)
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(Color.dmWarn)
                                     Text("\(controller.configStore.repairedCount) 项配置无法读取，已重置")
                                         .font(.system(size: 12))
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(Color.dmWarn)
                                     Spacer()
                                 }
                                 .padding(.horizontal, 14)
@@ -331,7 +331,7 @@ struct SettingsView: View {
                                     .font(.system(size: 13))
                                 Spacer()
                             }
-                            .foregroundColor(.red)
+                            .foregroundColor(Color.dmDanger)
                         }
                         .buttonStyle(.plain)
                         .padding(.horizontal, 14)
@@ -342,7 +342,7 @@ struct SettingsView: View {
                 if let m = message {
                     Text(m)
                         .font(.caption)
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.dmWarn)
                 }
             }
             .padding(16)
@@ -359,7 +359,7 @@ struct SettingsView: View {
         HStack {
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.primary)
+                .foregroundColor(Color.dmInk)
             Spacer()
             trailing
         }
@@ -376,7 +376,7 @@ struct SettingsView: View {
             Spacer()
             Text(value)
                 .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .foregroundColor(Color.dmInk2)
                 .lineLimit(1)
         }
         .padding(.horizontal, 14)
@@ -403,10 +403,10 @@ struct SettingsView: View {
 
     private func statusColor(_ status: UpdateChecker.ManualCheckStatus) -> Color {
         switch status {
-        case .upToDate: return .green
-        case .newVersion: return .brandGold
-        case .failed: return .red
-        default: return .secondary
+        case .upToDate: return .dmOk
+        case .newVersion: return .dmAccent
+        case .failed: return .dmDanger
+        default: return .dmInk2
         }
     }
 
@@ -539,11 +539,11 @@ struct SettingsView: View {
         let needsSearch = !trimmed.isEmpty && trimmed.uppercased() != lastSearched.uppercased() && !isSearching
         Button(action: action) {
             AppIcon(name: "search", size: 12)
-                .foregroundColor(needsSearch ? Color(red: 0.13, green: 0.15, blue: 0.16) : Color.brandGold)
+                .foregroundColor(needsSearch ? Color.dmOnAccent : Color.dmAccent)
                 .frame(width: 30, height: 30)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(needsSearch ? Color.brandGold : Color.clear)
+                        .fill(needsSearch ? Color.dmAccentFill : Color.clear)
                 )
         }
         .buttonStyle(.plain)
@@ -563,7 +563,7 @@ struct SettingsView: View {
                     .controlSize(.small)
                 Text("查询中…")
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color.dmInk2)
             }
         case .found(let name):
             HStack(spacing: 6) {
@@ -571,7 +571,7 @@ struct SettingsView: View {
                     .foregroundColor(.down)
                 Text(name)
                     .font(.system(size: 11))
-                    .foregroundColor(.primary)
+                    .foregroundColor(Color.dmInk)
                 Spacer()
                 Button {
                     if label == "板块" {
@@ -584,16 +584,16 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
-                .tint(Color.brandGold)
+                .tint(Color.dmAccentFill)
                 .help("添加\(label)")
             }
         case .notFound:
             HStack(spacing: 4) {
                     AppIcon(name: "warning", size: 10)
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.dmWarn)
                 Text("未找到该\(label)，请检查代码")
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color.dmInk2)
                 Spacer()
                 // 识别失败时仍允许手动添加（用代码作名称）
                 Button {

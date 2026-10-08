@@ -14,13 +14,13 @@ struct FundView: View {
                     VStack(spacing: 8) {
                         Spacer()
                         AppIcon(name: "fund", size: 22)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color.dmInk2)
                         Text("暂未添加基金")
                             .font(.system(size: 13))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color.dmInk2)
                         Text("在设置页「自选基金」中添加")
                             .font(.system(size: 11))
-                            .foregroundColor(.secondary.opacity(0.6))
+                            .foregroundColor(Color.dmInk3)
                         Spacer()
                     }
                 } else {
@@ -28,10 +28,10 @@ struct FundView: View {
                         Spacer()
                         if let err = controller.fundErrorMessage {
                             AppIcon(name: "wifi-error", size: 22)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Color.dmInk2)
                             Text(err)
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Color.dmInk2)
                         } else {
                             ProgressView("加载基金数据…")
                         }
@@ -94,11 +94,11 @@ struct FundCard: View {
                         .lineLimit(1)
                     Text(fund.quote.code)
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.dmInk2)
                     Spacer()
                     if canExpand {
                         AppIcon(name: isExpanded ? "chevron-down" : "chevron-right", size: 12)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color.dmInk2)
                             .frame(width: 20, height: 20)
                     }
                 }
@@ -119,7 +119,7 @@ struct FundCard: View {
                 HStack(spacing: 8) {
                     Text("净值日期 \(DataFreshness.shortDate(fund.quote.navDate))")
                         .font(.system(size: 10))
-                        .foregroundColor(.secondary.opacity(0.55))
+                        .foregroundColor(Color.dmInk3)
                     Spacer()
                     if let estNav = fund.estNav {
                         // 覆盖度必须跟估值一起出现：10 只重仓只有 2 只有行情时，
@@ -128,14 +128,14 @@ struct FundCard: View {
                             Text(coverageLabel(cov))
                                 .font(.system(size: 10))
                                 .foregroundColor(isLowCoverage ? Color(red: 0.961, green: 0.620, blue: 0.043)
-                                                               : .secondary.opacity(0.55))
+                                                               : Color.dmInk3)
                         }
                         Text(marketStatus == .trading ? "盘中估算" : "今日估算")
                             .font(.system(size: 10))
-                            .foregroundColor(.secondary.opacity(0.55))
+                            .foregroundColor(Color.dmInk3)
                         Text(Format.navPrice(estNav))
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(isLowCoverage ? .secondary : .primary)
+                            .foregroundColor(isLowCoverage ? Color.dmInk2 : Color.dmInk)
                     }
                 }
             }
@@ -167,7 +167,7 @@ struct FundCard: View {
                 if fund.holdings.isEmpty {
                     Text("暂无重仓数据")
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.dmInk2)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                 } else {
@@ -183,11 +183,11 @@ struct FundCard: View {
                 }
             }
         }
-        .background(Color.cardBackground)
+        .background(Color.dmPanel2)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.cardBorder, lineWidth: 0.5)
+                .stroke(Color.dmLine2, lineWidth: 0.5)
         )
     }
 
@@ -202,24 +202,24 @@ struct FundCard: View {
             Text("今日涨跌").frame(width: 62, alignment: .trailing)
         }
         .font(.system(size: 12, weight: .medium))
-        .foregroundColor(.primary.opacity(0.7))
+        .foregroundColor(Color.dmInk.opacity(0.7))
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-        .background(Color.zebraLight)
+        .background(Color.dmPanel3)
     }
 
     /// 单只重仓行（对齐板块成分股行样式）
     private func holdingRow(idx: Int, holding: FundHolding) -> some View {
         HStack(spacing: 8) {
             Text("\(idx + 1)")
-                .foregroundColor(.secondary)
+                .foregroundColor(Color.dmInk2)
                 .frame(width: 28, alignment: .leading)
             Text(holding.name)
                 .lineLimit(1)
                 .frame(width: 84, alignment: .leading)
             Spacer()
             Text(String(format: "%.1f%%", holding.weight))
-                .foregroundColor(.secondary)
+                .foregroundColor(Color.dmInk2)
                 .frame(width: 48, alignment: .trailing)
             if let pct = changes[FundEstimator.normalizeCode(holding.code)] {
                 Text(Format.pct(pct))
@@ -227,7 +227,7 @@ struct FundCard: View {
                     .frame(width: 62, alignment: .trailing)
             } else {
                 Text("--")
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color.dmInk2)
                     .frame(width: 62, alignment: .trailing)
             }
         }

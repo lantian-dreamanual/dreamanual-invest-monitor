@@ -36,7 +36,7 @@ struct TrendChart: View {
         if trend.points.isEmpty {
             Text("暂无分时数据")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(Color.dmInk2)
                 .frame(maxWidth: .infinity)
                 .frame(height: 130)
         } else {
@@ -68,7 +68,7 @@ struct TrendChart: View {
                     Spacer()
                     Text("最后更新 \(lastUpdateText)")
                         .font(.system(size: 9))
-                        .foregroundColor(.secondary.opacity(0.6))
+                        .foregroundColor(Color.dmInk3)
                 }
                 .padding(.top, 2)
             }
@@ -271,7 +271,7 @@ struct TrendChart: View {
                 if !started { avgPath.move(to: pt); started = true }
                 else { avgPath.addLine(to: pt) }
             }
-            context.stroke(avgPath, with: .color(.orange.opacity(0.6)), style: StrokeStyle(lineWidth: 0.8, dash: [2, 2]))
+            context.stroke(avgPath, with: .color(Color.dmWarn.opacity(0.6)), style: StrokeStyle(lineWidth: 0.8, dash: [2, 2]))
         }
 
         // 7. 最新价标记点
@@ -313,7 +313,7 @@ struct TrendChart: View {
             context.stroke(tickLine, with: .color(.gray.opacity(0.5)), style: StrokeStyle(lineWidth: 0.5))
             if !label.isEmpty {
                 context.draw(
-                    Text(label).font(.system(size: 9)).foregroundColor(.secondary),
+                    Text(label).font(.system(size: 9)).foregroundColor(Color.dmInk2),
                     at: CGPoint(x: x, y: chartY + chartH + 7),
                     anchor: ratio == 0 ? .topLeading : (ratio == 1.0 ? .topTrailing : .top)
                 )

@@ -14,13 +14,13 @@ struct SectorView: View {
                         Spacer()
                             .frame(height: 80)
                         AppIcon(name: "sector", size: 22)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color.dmInk2)
                         Text("暂未添加板块")
                             .font(.system(size: 13))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color.dmInk2)
                         Text("在设置页「自选板块」中添加")
                             .font(.system(size: 11))
-                            .foregroundColor(.secondary.opacity(0.6))
+                            .foregroundColor(Color.dmInk3)
                     }
                     .frame(maxWidth: .infinity)
                 } else if let s = controller.sector {
@@ -65,11 +65,11 @@ struct SectorView: View {
                             }
                         }
                     }
-                    .background(Color.zebraLight)
+                    .background(Color.dmPanel3)
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.cardBorder, lineWidth: 0.5)
+                            .stroke(Color.dmLine2, lineWidth: 0.5)
                     )
                 }
             }
@@ -91,10 +91,10 @@ struct SectorView: View {
             Text("成交额").frame(width: 64, alignment: .trailing)
         }
         .font(.system(size: 12, weight: .medium))
-        .foregroundColor(.primary.opacity(0.7))
+        .foregroundColor(Color.dmInk.opacity(0.7))
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-        .background(Color.zebraLight)
+        .background(Color.dmPanel3)
     }
 
 }
@@ -108,7 +108,7 @@ struct SectorView: View {
         var body: some View {
             HStack(spacing: 8) {
                 Text("\(rank)")
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color.dmInk2)
                     .frame(width: 28, alignment: .leading)
                 Text(stock.name)
                     .lineLimit(1)
@@ -120,12 +120,12 @@ struct SectorView: View {
                     .foregroundColor(Color.trend(stock.changePct))
                     .frame(width: 62, alignment: .trailing)
                 Text(Format.amount(stock.amount))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color.dmInk2)
                     .frame(width: 64, alignment: .trailing)
             }
             .font(.system(size: 12))
             .padding(.horizontal, 14)
             .padding(.vertical, 7)
-            .background(isZebra ? Color.zebraDark : Color.zebraLight)
+            .background(isZebra ? Color.dmPanel2 : Color.dmPanel3)
         }
     }

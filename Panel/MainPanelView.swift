@@ -35,10 +35,10 @@ struct MainPanelView: View {
                     Divider()
                     HStack(spacing: 4) {
                         AppIcon(name: "warning", size: 9)
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.dmWarn)
                         Text(err)
                             .font(.caption2)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color.dmInk2)
                             .lineLimit(1)
                     }
                     .padding(.horizontal, 12)
@@ -47,7 +47,7 @@ struct MainPanelView: View {
             }
         }
         .frame(width: 400, height: 500)
-        .background(Color.panelBackground)
+        .background(Color.dmPanel)
         .onReceive(controller.$pendingTab) { target in
             if let target = target {
                 // 通知点击触发的 Tab 切换：先退出设置页（如果在），再切 Tab
@@ -78,19 +78,19 @@ struct MainPanelView: View {
                 if controller.allMarketsClosed {
                     Text(controller.panelStatusText)
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary.opacity(0.55))
+                        .foregroundColor(Color.dmInk3)
                 } else if controller.countdown == 0 {
                     Text(controller.panelStatusText)
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary.opacity(0.55))
+                        .foregroundColor(Color.dmInk3)
                 } else if controller.isLoading {
                     Text("刷新中…")
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary.opacity(0.55))
+                        .foregroundColor(Color.dmInk3)
                 } else {
                     Text("\(controller.countdown) 秒后更新")
                         .font(.system(size: 11))
-                        .foregroundColor(.secondary.opacity(0.55))
+                        .foregroundColor(Color.dmInk3)
                         .monospacedDigit()
                 }
                 IconButton(iconName: "gear") {
@@ -169,16 +169,16 @@ struct UpdateBanner: View {
     var body: some View {
         HStack(spacing: 8) {
             AppIcon(name: "update", size: 16)
-                .foregroundColor(.brandGold)
+                .foregroundColor(Color.dmAccent)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("发现新版本 v\(version)")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.primary)
+                    .foregroundColor(Color.dmInk)
                 if let notes, !notes.isEmpty {
                     Text(notes)
                         .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.dmInk2)
                         .lineLimit(1)
                 }
             }
@@ -193,13 +193,13 @@ struct UpdateBanner: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
-            .tint(Color.brandGold)
+            .tint(Color.dmAccentFill)
 
             Button {
                 onIgnore()
             } label: {
                 AppIcon(name: "close", size: 9)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color.dmInk2)
             }
             .buttonStyle(.plain)
             .help("忽略此版本")
@@ -257,7 +257,7 @@ struct InfoCell: View {
         VStack(spacing: 2) {
             Text(label)
                 .font(.caption2)
-                .foregroundColor(.secondary)
+                .foregroundColor(Color.dmInk2)
             Text(value)
                 .font(.callout)
                 .fontWeight(.medium)

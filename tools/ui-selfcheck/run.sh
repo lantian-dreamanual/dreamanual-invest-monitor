@@ -44,7 +44,10 @@ if [ "$COUNT" -lt 10 ]; then
 fi
 echo "源文件 ${COUNT} 个（提取自 build_dmg.sh，与正式构建同一份）"
 
-xcrun swiftc -Onone $FILES tools/ui-selfcheck/main.swift \
+# -disable-sandbox：本机 Xcode 的 swift-plugin-server 在被沙箱隔离时会异常退出（信号 137），
+# 所有宏（@State / @Observable 等）展开失败并报 "produced malformed response"。
+# 与 build_dmg.sh 同一处理，终端里本就不受限，加了对正常流程无影响。
+xcrun swiftc -disable-sandbox -Onone $FILES tools/ui-selfcheck/main.swift \
   -o "$OUT/ui-shot" -framework SwiftUI -framework AppKit -lsqlite3 -parse-as-library
 
 echo "========== 组装临时 .app =========="

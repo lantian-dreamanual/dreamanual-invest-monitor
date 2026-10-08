@@ -4,12 +4,14 @@ import SwiftUI
 // ============ 全局颜色系统 ============
 
 extension Color {
-    // Tailwind v4 色板，饱和度低于系统纯色，深色背景下更柔和
-    static let up = Color(red: 0xEF/255, green: 0x44/255, blue: 0x44/255)   // red-500 #EF4444
-    /// 跌色对齐站点：dreamanual 的 tokens.css 里 `--dt-success` 就是 #16a34a，
-    /// 站上看到的绿和 App 里看到的绿始终是同一个
-    static let down = Color(red: 0x16/255, green: 0xA3/255, blue: 0x4A/255) // green-600 #16a34a
-    static let flat = Color.secondary // 平
+    /// 涨跌色来自设计令牌（`--up` / `--down`，四个 app 里只有本 app 用）。
+    ///
+    /// 跌色落在 green-600 而不是 emerald-500 —— 两者色相差 18°，肉眼可辨。
+    /// 官网 tokens.css 的 `--dt-success` 就是 #16a34a，站上看到的绿和 App 里看到的绿
+    /// 要始终是同一个，这条优先于色族统一。取舍理由见 design/tokens.json 的 apps.invest。
+    static let up = Color.dmUp       // red-500 #ef4444
+    static let down = Color.dmDown   // green-600 #16a34a
+    static let flat = Color.dmInk2   // 平
 
     /// 涨跌颜色：>0 红、<0 绿、==0 灰
     static func trend(_ v: Double) -> Color {

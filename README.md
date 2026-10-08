@@ -79,7 +79,7 @@ macOS 菜单栏投资监控工具，实时追踪黄金价格、A股板块行情�
 ```bash
 git clone https://github.com/lantian-dreamanual/dreamanual-invest-monitor.git
 cd dreamanual-invest-monitor
-xcrun swiftc -O \
+xcrun swiftc -disable-sandbox -O \
   InvestmentBarApp.swift \
   MenuBarController.swift \
   Config/AlertConfig.swift \
@@ -90,6 +90,7 @@ xcrun swiftc -O \
   Alert/AlertNotifier.swift \
   Alert/AlertRule.swift \
   Panel/AlertView.swift \
+  Panel/DreamanualTheme.invest.swift \
   Panel/DesignSystem.swift \
   Panel/FundView.swift \
   Panel/MainPanelView.swift \
@@ -98,8 +99,11 @@ xcrun swiftc -O \
   Panel/TrendChart.swift \
   UpdateChecker.swift \
   -o "投资监控" \
-  -framework SwiftUI -framework AppKit -parse-as-library
+  -framework SwiftUI -framework AppKit -lsqlite3 -parse-as-library
 ```
+
+> 完整源码清单以 `build_dmg.sh` 第 1 步为准（上面是简化版）。改完令牌后跑
+> `node scripts/check-tokens.mjs` 校验生成物同步与令牌引用。
 
 ## 数据来源
 
@@ -114,9 +118,12 @@ xcrun swiftc -O \
 - **语言**：Swift
 - **UI 框架**：SwiftUI + AppKit
 - **架构**：菜单栏应用（NSStatusItem + 自定义 NSPanel）
-- **设计风格**：对齐 macOS Tahoe 系统设置深色模式，品牌金色主调
+- **设计风格**：Dreamanual 设计系统深色 + 金色主调；色值单一来源在 `design/tokens.json`
+  （独立仓库），生成物 `Panel/DreamanualTheme.invest.swift` 入库，`scripts/check-tokens.mjs`
+  门禁保证两者逐字节一致。固定深色外观，不随系统切换
 - **数据持久化**：UserDefaults（JSON 编码）
-- **编译方式**：xcrun swiftc 直接编译，无需 Xcode 项目文件
+- **编译方式**：xcrun swiftc 直接编译，无需 Xcode 项目文件（需 `-disable-sandbox`，
+  本机 Xcode 的宏插件服务器在沙箱隔离下会异常退出）
 
 ## 项目结构
 

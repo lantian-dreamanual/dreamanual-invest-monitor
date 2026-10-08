@@ -70,12 +70,15 @@ if [ "$SKIP_UI" -eq 0 ]; then TOTAL=$((TOTAL + 1)); fi
 if [ "$APP_ONLY" -eq 0 ]; then TOTAL=$((TOTAL + 1)); fi
 
 echo "========== 1/$TOTAL 编译 =========="
-xcrun swiftc -O \
+# -disable-sandbox：本机 Xcode 的 swift-plugin-server 在被沙箱隔离时会异常退出（信号 137），
+# 所有宏（@State / @Observable 等）展开失败并报 "produced malformed response"。说明见
+# tools/ui-selfcheck/run.sh。终端里本就不受限，加了对正常流程无影响。
+xcrun swiftc -disable-sandbox -O \
   Config/AlertConfig.swift Config/ConfigStore.swift Config/TradingCalendar.swift \
   Alert/AlertRule.swift Alert/AlertStateMachine.swift Alert/JudgeWindow.swift \
   Alert/AlertEngine.swift Alert/AlertEventStore.swift Alert/AlertNotifier.swift \
   Data/DataLayer.swift Data/QuoteChain.swift Data/FundEstimator.swift Data/SnapshotStore.swift \
-  Panel/DesignSystem.swift Panel/DataFreshness.swift Panel/MainPanelView.swift Panel/SettingsView.swift \
+  Panel/DreamanualTheme.invest.swift Panel/DesignSystem.swift Panel/DataFreshness.swift Panel/MainPanelView.swift Panel/SettingsView.swift \
   Panel/AlertView.swift Panel/SectorView.swift Panel/FundView.swift Panel/TrendChart.swift \
   MenuBarController.swift UpdateChecker.swift InvestmentBarApp.swift \
   -o "投资监控" -framework SwiftUI -framework AppKit -lsqlite3 -parse-as-library

@@ -37,7 +37,7 @@ struct UIShot {
         // 不补的话 ScrollView 外面是透明像素，与「纯黑」无法区分
         let root = SettingsView(controller: ctrl)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.panelBackground)
+            .background(Color.dmPanel)
         let hosting = NSHostingView(rootView: root)
         // 先给一个足够高的窗口量内容高度，再收到内容高度上重新布局
         let probeHeight: CGFloat = 3000
