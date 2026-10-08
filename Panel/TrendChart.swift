@@ -35,7 +35,7 @@ struct TrendChart: View {
     var body: some View {
         if trend.points.isEmpty {
             Text("暂无分时数据")
-                .font(.caption)
+                .font(.system(size: DmText.t12))
                 .foregroundColor(Color.dmInk2)
                 .frame(maxWidth: .infinity)
                 .frame(height: 130)

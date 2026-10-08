@@ -37,7 +37,7 @@ struct MainPanelView: View {
                         LucideIcon("warning", size: DmIcon.i10)
                             .foregroundColor(Color.dmWarn)
                         Text(err)
-                            .font(.caption2)
+                            .font(.system(size: DmText.t11))
                             .foregroundColor(Color.dmInk2)
                             .lineLimit(1)
                     }
@@ -249,11 +249,10 @@ struct InfoCell: View {
     var body: some View {
         VStack(spacing: DmSpace.s2) {
             Text(label)
-                .font(.caption2)
+                .font(.system(size: DmText.t11))
                 .foregroundColor(Color.dmInk2)
             Text(value)
-                .font(.callout)
-                .fontWeight(.medium)
+                .font(.system(size: DmText.t13, weight: .medium))
         }
         .frame(maxWidth: .infinity)
     }

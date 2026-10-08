@@ -340,7 +340,7 @@ struct SettingsView: View {
 
                 if let m = message {
                     Text(m)
-                        .font(.caption)
+                        .font(.system(size: DmText.t12))
                         .foregroundColor(Color.dmWarn)
                 }
             }

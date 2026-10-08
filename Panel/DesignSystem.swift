@@ -490,7 +490,7 @@ struct PriceHeader: View {
             // 标签行
             HStack(spacing: DmSpace.s6) {
                 Text(title)
-                    .font(.caption)
+                    .font(.system(size: DmText.t13))
                     .foregroundColor(Color.dmInk2)
                 if let status = marketStatus {
                     MarketStatusBadge(status: status)
@@ -505,11 +505,11 @@ struct PriceHeader: View {
             // 涨跌幅 + 次要信息 + 行情时间
             HStack(spacing: DmSpace.s12) {
                 Text(Format.pct(changePct))
-                    .font(.callout.weight(.semibold))
+                    .font(.system(size: DmText.t13, weight: .semibold))
                     .foregroundColor(Color.trend(changePct))
                 if let sec = secondary {
                     Text(sec)
-                        .font(.caption2)
+                        .font(.system(size: DmText.t12))
                         .foregroundColor(Color.dmInk2)
                 }
                 Spacer(minLength: DmSpace.s6)

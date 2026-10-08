@@ -42,8 +42,7 @@ struct AlertRuleList: View {
                         .foregroundColor(Color.dmInk2)
                         .frame(width: 18)
                     Text("全部规则")
-                        .font(.callout)
-                        .fontWeight(.semibold)
+                        .font(.system(size: DmText.t13, weight: .semibold))
                         .foregroundColor(Color.dmInk)
                         .lineLimit(1)
                     Spacer()
@@ -145,8 +144,7 @@ struct AlertGroupView: View {
                         .foregroundColor(groupColor)
                         .frame(width: 18)
                     Text(group.name)
-                        .font(.callout)
-                        .fontWeight(.semibold)
+                        .font(.system(size: DmText.t13, weight: .semibold))
                         .foregroundColor(Color.dmInk)
                         .lineLimit(1)
                     Text("\(group.rules.count) 条")
@@ -224,8 +222,7 @@ struct AlertRuleRow: View {
                                 .stroke(directionColor.opacity(0.45), lineWidth: 0.8)
                         )
                     Text(AlertFormat.threshold(rule))
-                        .font(.callout)
-                        .fontWeight(.medium)
+                        .font(.system(size: DmText.t13, weight: .medium))
                         .monospacedDigit()
                         .foregroundColor(rule.enabled ? Color.dmInk : Color.dmInk2)
                     if rule.effectiveConfirmDays > 1 {
@@ -248,8 +245,7 @@ struct AlertRuleRow: View {
                             .foregroundColor(stateColor)
                     }
                     Text(state.text)
-                        .font(.caption2)
-                        .fontWeight(stateWeight)
+                        .font(.system(size: DmText.t11, weight: stateWeight))
                         .foregroundColor(stateColor)
                         .lineLimit(1)
                 }
@@ -339,7 +335,7 @@ struct AddAlertSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DmSpace.s12) {
             Text("添加预警规则")
-                .font(.headline)
+                .font(.system(size: DmText.t15, weight: .semibold))
 
             // 标的类型
             FormSection("标的类型") {
@@ -559,7 +555,7 @@ struct EditAlertSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DmSpace.s12) {
             Text("编辑预警规则")
-                .font(.headline)
+                .font(.system(size: DmText.t15, weight: .semibold))
 
             // 标的类型
             FormSection("标的类型") {

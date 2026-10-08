@@ -30,7 +30,7 @@ struct FundView: View {
                             LucideIcon("wifi-error", size: DmIcon.i24)
                                 .foregroundColor(Color.dmInk2)
                             Text(err)
-                                .font(.caption)
+                                .font(.system(size: DmText.t12))
                                 .foregroundColor(Color.dmInk2)
                         } else {
                             ProgressView("加载基金数据…")
