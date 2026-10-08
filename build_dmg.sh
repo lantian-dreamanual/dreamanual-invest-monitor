@@ -24,6 +24,12 @@
 #   所以这里把二进制真的跑起来，观察 8 秒，用「进程还活着」判定，
 #   失败时把新产生的崩溃报告路径和 app 输出一起打出来，并让整个构建以非零码退出。
 #
+# 【.app 组装在 dist/，不留在项目根】
+#   2026-09-23 之前组装在项目根。项目根下的 .app 会被 LaunchServices 注册、
+#   被 Spotlight 索引，于是启动台里出现两份同名应用（副标题写着它所在的文件夹）。
+#   现在组装到 dist/，打包完 DMG 之后自动装进 /Applications 并从 dist/ 移走。
+#   appdmg 要读 dist/ 里的这个包当输入，所以安装必须排在打包之后。
+#
 # 【DMG 打包方案与踩过的坑】
 #   - 工具: appdmg 0.6.6，通过 npx 调用。脚本自己定位 node，
 #     不依赖你终端 PATH 里有没有 node。
@@ -41,7 +47,8 @@ set -e
 
 cd "$(dirname "$0")"
 
-APP_NAME="Dreamanual 投资监控.app"
+APP_NAME="dist/Dreamanual 投资监控.app"
+APP_BASE="$(basename "$APP_NAME")"
 VOL_NAME="Dreamanual 投资监控"
 DMG_OUT="dist/Dreamanual 投资监控.dmg"
 
@@ -130,6 +137,57 @@ smoke_launch() {
   return 1
 }
 
+# 把组装好的 app 装进 /Applications，dist/ 里不留 .app。
+# 为什么要有这一步：dist/ 下的 .app 是个结构完整的应用包，会被 LaunchServices
+# 注册、被 Spotlight 索引 —— 启动台里于是出现两份同名应用，副标题写着它所在的
+# 文件夹（这里就是「投资监控」）。装完挪走，开发目录只留 DMG。
+# 注意：必须在 DMG 打包之后调用 —— appdmg 要读 dist/ 里的这个包当输入。
+install_app() {
+  local name stamp trash old_ver src_hash dst_hash
+  name="$APP_BASE"
+  stamp="$(date +%Y%m%d-%H%M%S)"
+  trash="$HOME/.Trash"
+
+  if [ ! -d "$APP_NAME" ]; then
+    # 变量后面紧跟中文标点时要写成 ${VAR}：$VAR，这种写法 bash 会把标点的字节
+    # 吃进变量名，整个变量展开为空，只留下乱码。
+    echo "找不到 ${APP_NAME}，跳过安装"
+    return 1
+  fi
+
+  if [ -e "/Applications/$name" ]; then
+    old_ver="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "/Applications/$name/Contents/Info.plist" 2>/dev/null || true)"
+    mv "/Applications/$name" "$trash/$name.replaced-$stamp"
+    echo "  旧包已移入废纸篓（版本 ${old_ver:-未知}）：$trash/$name.replaced-$stamp"
+  fi
+
+  if ! ditto "$APP_NAME" "/Applications/$name"; then
+    echo "❌ 复制失败；旧包在废纸篓里，可手工放回"
+    return 1
+  fi
+
+  src_hash="$(shasum -a 256 "$APP_NAME/Contents/MacOS/投资监控" 2>/dev/null | cut -d' ' -f1 || true)"
+  dst_hash="$(shasum -a 256 "/Applications/$name/Contents/MacOS/投资监控" 2>/dev/null | cut -d' ' -f1 || true)"
+  if [ -z "$src_hash" ] || [ "$src_hash" != "$dst_hash" ]; then
+    echo "❌ 校验失败：装过去的二进制与源对不上，回滚"
+    echo "   源 ${src_hash:-读不到} / 目标 ${dst_hash:-读不到}"
+    rm -rf "/Applications/$name"
+    if [ -e "$trash/$name.replaced-$stamp" ]; then
+      echo "   旧包在废纸篓：$trash/$name.replaced-$stamp"
+    fi
+    return 1
+  fi
+
+  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "/Applications/$name" 2>/dev/null || true
+  echo "  已安装：/Applications/${name}（二进制 ${src_hash:0:12}…）"
+
+  if mv "$APP_NAME" "$trash/$name.source-$stamp"; then
+    echo "  dist 里的副本已移入废纸篓：$trash/$name.source-$stamp"
+  else
+    echo "  dist 里的副本没挪走（不影响安装）"
+  fi
+}
+
 STEP=3
 if [ "$SKIP_SMOKE" -eq 0 ]; then
   STEP=$((STEP + 1))
@@ -166,10 +224,13 @@ fi
 
 if [ "$APP_ONLY" -eq 1 ]; then
   echo "========== 跳过 DMG 打包（--app-only） =========="
-  echo "app 已就绪: $APP_NAME"
+  echo "app 已组装: $APP_NAME"
+  echo ""
+  echo "========== 收尾：安装到 /Applications =========="
+  install_app || exit 1
   echo ""
   echo "重启以测试:"
-  echo "  pkill -f '投资监控'; sleep 1; open '$APP_NAME'"
+  echo "  pkill -f '投资监控'; sleep 1; open '/Applications/$APP_BASE'"
   exit 0
 fi
 
@@ -234,5 +295,8 @@ fi
 echo "========== 完成 =========="
 ls -lh "$DMG_OUT"
 echo ""
+echo "========== 收尾：安装到 /Applications =========="
+install_app || exit 1
+echo ""
 echo "可选: 启动新版 app"
-echo "  pkill -f '投资监控'; sleep 1; open '$APP_NAME'"
+echo "  pkill -f '投资监控'; sleep 1; open '/Applications/$APP_BASE'"

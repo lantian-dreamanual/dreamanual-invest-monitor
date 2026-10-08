@@ -32,5 +32,8 @@ Package.resolved
 # WorkBuddy 项目记忆与工作区（仓库公开，不发布内部工作记录）
 .workbuddy/
 
+# nginx 站点配置收在产品线的 ops/ 下，不放 app 仓库（防止再次回流）
+dreamanual.conf*
+
 # Code signing
 *_CodeSignature/
