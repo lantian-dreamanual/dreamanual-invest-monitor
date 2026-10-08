@@ -46,7 +46,11 @@ if (localText !== generatedText) {
 }
 
 // ---- 2) 代码引用的令牌是否都有定义 ----
-const defined = new Set([...generatedText.matchAll(/static let (dm\w+)/g)].map((m) => m[1]));
+// 生成物里的公开符号：常量（`static let dmBg`）与修饰器（`func dmShadowCard`）。
+// 只收 `static let` 的话，新加的阴影修饰器会被当成「引用了没定义的令牌」。
+const defined = new Set(
+  [...generatedText.matchAll(/(?:static let|func)\s+(dm\w+)/g)].map((m) => m[1]),
+);
 
 const sources = [];
 (function walk(dir) {

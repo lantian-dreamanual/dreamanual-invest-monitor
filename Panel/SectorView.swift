@@ -69,7 +69,7 @@ struct SectorView: View {
                     .cornerRadius(DmRadius.r12)
                     .overlay(
                         RoundedRectangle(cornerRadius: DmRadius.r12)
-                            .stroke(Color.dmLine2, lineWidth: 0.5)
+                            .stroke(Color.dmLine2, lineWidth: DmLine.hairline)
                     )
                 }
             }

@@ -183,7 +183,7 @@ struct AlertGroupView: View {
         .cornerRadius(DmRadius.r10)
         .overlay(
             RoundedRectangle(cornerRadius: DmRadius.r10)
-                .stroke(Color.dmLine2.opacity(allDisabled ? 0.5 : 1), lineWidth: 0.5)
+                .stroke(Color.dmLine2.opacity(allDisabled ? 0.5 : 1), lineWidth: DmLine.hairline)
         )
         .opacity(allDisabled ? 0.65 : 1)
     }
@@ -219,7 +219,7 @@ struct AlertRuleRow: View {
                         .foregroundColor(directionColor)
                         .overlay(
                             RoundedRectangle(cornerRadius: DmRadius.r6)
-                                .stroke(directionColor.opacity(0.45), lineWidth: 0.8)
+                                .stroke(directionColor.opacity(0.45), lineWidth: DmLine.base)
                         )
                     Text(AlertFormat.threshold(rule))
                         .font(.system(size: DmText.t13, weight: .medium))

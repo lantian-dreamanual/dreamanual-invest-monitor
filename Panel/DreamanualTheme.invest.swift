@@ -107,6 +107,13 @@ enum DmControl {
     static let h38: CGFloat = 38
 }
 
+/// 描边线宽。用法：.stroke(Color.dmLine2, lineWidth: DmLine.base)
+enum DmLine {
+    static let hairline: CGFloat = 0.5
+    static let base: CGFloat = 1
+    static let bold: CGFloat = 3
+}
+
 /// 动效时长（秒）。用法：.easeOut(duration: DmMotion.fast)
 enum DmMotion {
     static let fast: Double = 0.14
@@ -117,4 +124,32 @@ enum DmMotion {
 /// 窗口级布局常量（非尺度档）。用法：.padding(.top, DmLayout.titlebar)
 enum DmLayout {
     static let titlebar: CGFloat = 30
+}
+// ---------- 阴影 ----------
+
+/// 一条阴影的四个参数。与 CSS 的 box-shadow 不同构（那边可叠多层、blur 与 SwiftUI 的
+/// radius 语义也不同），所以这一组是 Swift 侧独立定值，不是 css 值的换算。
+struct DmShadowSpec {
+    let ink: Double
+    let radius: CGFloat
+    let x: CGFloat
+    let y: CGFloat
+}
+
+/// 阴影三档：card 列表内卡片 / toast 会话提示 / modal 弹窗与浮层。
+enum DmShadow {
+    static let card = DmShadowSpec(ink: 0.04, radius: 4, x: 0, y: 2)
+    static let toast = DmShadowSpec(ink: 0.3, radius: 8, x: 0, y: 2)
+    static let modal = DmShadowSpec(ink: 0.4, radius: 24, x: 0, y: 8)
+}
+
+extension View {
+    /// 按 DmShadow 的一档上阴影。要自己传数值时走这里，别直接写 .shadow(...)。
+    func dmShadow(_ spec: DmShadowSpec) -> some View {
+        shadow(color: .black.opacity(spec.ink), radius: spec.radius, x: spec.x, y: spec.y)
+    }
+
+    func dmShadowCard() -> some View { dmShadow(DmShadow.card) }
+    func dmShadowToast() -> some View { dmShadow(DmShadow.toast) }
+    func dmShadowModal() -> some View { dmShadow(DmShadow.modal) }
 }

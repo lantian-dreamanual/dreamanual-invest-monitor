@@ -146,7 +146,7 @@ struct SegmentedTabs<T: Hashable>: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: DmRadius.r6)
-                .stroke(Color.dmLine2, lineWidth: 1)
+                .stroke(Color.dmLine2, lineWidth: DmLine.base)
         )
         .clipShape(RoundedRectangle(cornerRadius: DmRadius.r6))
     }
@@ -304,7 +304,7 @@ struct SecondaryButtonStyle: ButtonStyle {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DmRadius.r8)
-                    .strokeBorder(isEnabled ? Color.dmLine : Color.dmLine2, lineWidth: 1)
+                    .strokeBorder(isEnabled ? Color.dmLine : Color.dmLine2, lineWidth: DmLine.base)
             )
             .opacity(configuration.isPressed && isEnabled ? 0.85 : 1)
             .onHover { isHovered = $0 }
@@ -338,7 +338,7 @@ struct CompactButtonStyle: ButtonStyle {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DmRadius.r6)
-                    .strokeBorder(isEnabled ? Color.dmLine : Color.dmLine2, lineWidth: 1)
+                    .strokeBorder(isEnabled ? Color.dmLine : Color.dmLine2, lineWidth: DmLine.base)
             )
             .opacity(configuration.isPressed && isEnabled ? 0.85 : 1)
             .onHover { isHovered = $0 }
@@ -391,7 +391,7 @@ struct FormTextField: View {
                 RoundedRectangle(cornerRadius: DmRadius.r8)
                     .strokeBorder(
                         isFocused ? Color.dmAccentLine : Color.dmLine2,
-                        lineWidth: 1
+                        lineWidth: DmLine.base
                     )
             )
             .cornerRadius(DmRadius.r8)
@@ -445,7 +445,7 @@ struct FormCard<Content: View>: View {
         .cornerRadius(DmRadius.r12)
         .overlay(
             RoundedRectangle(cornerRadius: DmRadius.r12)
-                .stroke(Color.dmLine2, lineWidth: 0.5)
+                .stroke(Color.dmLine2, lineWidth: DmLine.hairline)
         )
     }
 }
@@ -469,7 +469,7 @@ struct SettingsCard<Content: View>: View {
         .cornerRadius(DmRadius.r12)
         .overlay(
             RoundedRectangle(cornerRadius: DmRadius.r12)
-                .stroke(Color.dmLine2, lineWidth: 0.5)
+                .stroke(Color.dmLine2, lineWidth: DmLine.hairline)
         )
     }
 }
