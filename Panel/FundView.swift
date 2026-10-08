@@ -11,23 +11,23 @@ struct FundView: View {
             if controller.funds.isEmpty {
                 // 区分「未配置基金」和「加载中/出错」
                 if controller.configStore.config.funds.isEmpty {
-                    VStack(spacing: 8) {
+                    VStack(spacing: DmSpace.s8) {
                         Spacer()
-                        AppIcon(name: "fund", size: 22)
+                        LucideIcon("fund", size: DmIcon.i24)
                             .foregroundColor(Color.dmInk2)
                         Text("暂未添加基金")
-                            .font(.system(size: 13))
+                            .font(.system(size: DmText.t13))
                             .foregroundColor(Color.dmInk2)
                         Text("在设置页「自选基金」中添加")
-                            .font(.system(size: 11))
+                            .font(.system(size: DmText.t11))
                             .foregroundColor(Color.dmInk3)
                         Spacer()
                     }
                 } else {
-                    VStack(spacing: 8) {
+                    VStack(spacing: DmSpace.s8) {
                         Spacer()
                         if let err = controller.fundErrorMessage {
-                            AppIcon(name: "wifi-error", size: 22)
+                            LucideIcon("wifi-error", size: DmIcon.i24)
                                 .foregroundColor(Color.dmInk2)
                             Text(err)
                                 .font(.caption)
@@ -40,13 +40,13 @@ struct FundView: View {
                 }
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 14) {
+                    LazyVStack(spacing: DmSpace.s14) {
                         let fundCount = controller.funds.count
                         ForEach(controller.funds, id: \.quote.code) { fund in
                             FundCard(fund: fund, changes: controller.fundStockChanges, marketStatus: controller.stockMarketStatus, defaultExpanded: fundCount == 1)
                         }
                     }
-                    .padding(14)
+                    .padding(DmSpace.s14)
                 }
             }
         }
@@ -86,39 +86,39 @@ struct FundCard: View {
     var body: some View {
         VStack(spacing: 0) {
             // ===== 净值信息区（整区可点击切换收起/展开） =====
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: DmSpace.s6) {
                 // 标题行：名称 + 代码（左侧）  展开指示箭头（右侧）
-                HStack(spacing: 8) {
+                HStack(spacing: DmSpace.s8) {
                     Text(fund.quote.name)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: DmText.t13, weight: .semibold))
                         .lineLimit(1)
                     Text(fund.quote.code)
-                        .font(.system(size: 11))
+                        .font(.system(size: DmText.t11))
                         .foregroundColor(Color.dmInk2)
                     Spacer()
                     if canExpand {
-                        AppIcon(name: isExpanded ? "chevron-down" : "chevron-right", size: 12)
+                        LucideIcon(isExpanded ? "chevron-down" : "chevron-right", size: DmIcon.i12)
                             .foregroundColor(Color.dmInk2)
                             .frame(width: 20, height: 20)
                     }
                 }
 
                 // 净值大数 + 涨跌
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: DmSpace.s8) {
                     Text(Format.navPrice(fund.quote.nav))
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(.system(size: DmText.t28, weight: .bold, design: .rounded))
                         .foregroundColor(Color.trend(fund.quote.navChangePct))
                     Text(Format.pct(fund.quote.navChangePct))
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: DmText.t14, weight: .semibold))
                         .foregroundColor(Color.trend(fund.quote.navChangePct))
                     Spacer()
                 }
-                .padding(.top, 2)
+                .padding(.top, DmSpace.s2)
 
                 // 净值日期 + 覆盖度 + 盘中估算
-                HStack(spacing: 8) {
+                HStack(spacing: DmSpace.s8) {
                     Text("净值日期 \(DataFreshness.shortDate(fund.quote.navDate))")
-                        .font(.system(size: 10))
+                        .font(.system(size: DmText.t10))
                         .foregroundColor(Color.dmInk3)
                     Spacer()
                     if let estNav = fund.estNav {
@@ -126,21 +126,20 @@ struct FundCard: View {
                         // 单独一个估值数字看不出它只代表那 2 只
                         if let cov = fund.estCoverage {
                             Text(coverageLabel(cov))
-                                .font(.system(size: 10))
-                                .foregroundColor(isLowCoverage ? Color(red: 0.961, green: 0.620, blue: 0.043)
-                                                               : Color.dmInk3)
+                                .font(.system(size: DmText.t10))
+                                .foregroundColor(isLowCoverage ? Color.dmWarn : Color.dmInk3)
                         }
                         Text(marketStatus == .trading ? "盘中估算" : "今日估算")
-                            .font(.system(size: 10))
+                            .font(.system(size: DmText.t10))
                             .foregroundColor(Color.dmInk3)
                         Text(Format.navPrice(estNav))
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: DmText.t12, weight: .medium))
                             .foregroundColor(isLowCoverage ? Color.dmInk2 : Color.dmInk)
                     }
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.horizontal, DmSpace.s14)
+            .padding(.vertical, DmSpace.s12)
             .background(
                 canExpand
                     ? Color.white.opacity(isHeaderHovered ? 0.06 : 0)
@@ -149,7 +148,7 @@ struct FundCard: View {
             .contentShape(Rectangle())
             .onTapGesture {
                 guard canExpand else { return }
-                withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
+                withAnimation(.easeInOut(duration: DmMotion.base)) { isExpanded.toggle() }
             }
             .onHover { hovering in
                 guard canExpand else { return }
@@ -166,10 +165,10 @@ struct FundCard: View {
                 Divider().opacity(0.5)
                 if fund.holdings.isEmpty {
                     Text("暂无重仓数据")
-                        .font(.system(size: 11))
+                        .font(.system(size: DmText.t11))
                         .foregroundColor(Color.dmInk2)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, DmSpace.s12)
                 } else {
                     holdingHeader
                     Divider().opacity(0.5)
@@ -184,16 +183,16 @@ struct FundCard: View {
             }
         }
         .background(Color.dmPanel2)
-        .cornerRadius(12)
+        .cornerRadius(DmRadius.r12)
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: DmRadius.r12)
                 .stroke(Color.dmLine2, lineWidth: 0.5)
         )
     }
 
     /// 重仓列表表头
     private var holdingHeader: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DmSpace.s8) {
             Text("#")
                 .frame(width: 28, alignment: .leading)
             Text("名称").frame(width: 84, alignment: .leading)
@@ -201,16 +200,16 @@ struct FundCard: View {
             Text("占比").frame(width: 48, alignment: .trailing)
             Text("今日涨跌").frame(width: 62, alignment: .trailing)
         }
-        .font(.system(size: 12, weight: .medium))
+        .font(.system(size: DmText.t12, weight: .medium))
         .foregroundColor(Color.dmInk.opacity(0.7))
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.horizontal, DmSpace.s14)
+        .padding(.vertical, DmSpace.s8)
         .background(Color.dmPanel3)
     }
 
     /// 单只重仓行（对齐板块成分股行样式）
     private func holdingRow(idx: Int, holding: FundHolding) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DmSpace.s8) {
             Text("\(idx + 1)")
                 .foregroundColor(Color.dmInk2)
                 .frame(width: 28, alignment: .leading)
@@ -231,8 +230,8 @@ struct FundCard: View {
                     .frame(width: 62, alignment: .trailing)
             }
         }
-        .font(.system(size: 12))
-        .padding(.horizontal, 14)
-        .padding(.vertical, 7)
+        .font(.system(size: DmText.t12))
+        .padding(.horizontal, DmSpace.s14)
+        .padding(.vertical, DmSpace.s8)
     }
 }

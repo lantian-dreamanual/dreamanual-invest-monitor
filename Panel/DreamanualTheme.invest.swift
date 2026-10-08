@@ -46,3 +46,75 @@ extension Color {
     static let dmUp = Color(red: 0.9373, green: 0.2667, blue: 0.2667)  // #ef4444
     static let dmDown = Color(red: 0.0863, green: 0.6392, blue: 0.2902)  // #16a34a
 }
+
+// ---------- 尺度 ----------
+
+/// 圆角。用法：RoundedRectangle(cornerRadius: DmRadius.r8)
+enum DmRadius {
+    static let r6: CGFloat = 6
+    static let r8: CGFloat = 8
+    static let r10: CGFloat = 10
+    static let r12: CGFloat = 12
+    static let r16: CGFloat = 16
+}
+
+/// 间距。用法：.padding(DmSpace.s12) / VStack(spacing: DmSpace.s8)
+enum DmSpace {
+    static let s2: CGFloat = 2
+    static let s4: CGFloat = 4
+    static let s6: CGFloat = 6
+    static let s8: CGFloat = 8
+    static let s10: CGFloat = 10
+    static let s12: CGFloat = 12
+    static let s14: CGFloat = 14
+    static let s16: CGFloat = 16
+    static let s20: CGFloat = 20
+    static let s24: CGFloat = 24
+}
+
+/// 字号。用法：.font(.system(size: DmText.t13))
+enum DmText {
+    static let t10: CGFloat = 10
+    static let t11: CGFloat = 11
+    static let t12: CGFloat = 12
+    static let t13: CGFloat = 13
+    static let t14: CGFloat = 14
+    static let t15: CGFloat = 15
+    static let t17: CGFloat = 17
+    static let t20: CGFloat = 20
+    static let t28: CGFloat = 28
+    static let t34: CGFloat = 34
+}
+
+/// 图标尺寸。用法：LucideIcon("play", size: DmIcon.i16)
+enum DmIcon {
+    static let i10: CGFloat = 10
+    static let i12: CGFloat = 12
+    static let i14: CGFloat = 14
+    static let i16: CGFloat = 16
+    static let i18: CGFloat = 18
+    static let i20: CGFloat = 20
+    static let i24: CGFloat = 24
+    static let i32: CGFloat = 32
+    static let i44: CGFloat = 44
+    static let i64: CGFloat = 64
+}
+
+/// 控件高度（按钮 / 输入框 / 搜索框 / 图标钮）。用法：.frame(height: DmControl.h38)
+enum DmControl {
+    static let h28: CGFloat = 28
+    static let h32: CGFloat = 32
+    static let h38: CGFloat = 38
+}
+
+/// 动效时长（秒）。用法：.easeOut(duration: DmMotion.fast)
+enum DmMotion {
+    static let fast: Double = 0.14
+    static let base: Double = 0.22
+    static let slow: Double = 0.28
+}
+
+/// 窗口级布局常量（非尺度档）。用法：.padding(.top, DmLayout.titlebar)
+enum DmLayout {
+    static let titlebar: CGFloat = 30
+}

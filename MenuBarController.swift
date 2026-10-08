@@ -168,7 +168,7 @@ final class MenuBarController: NSObject, ObservableObject {
             }
             button.attributedTitle = NSAttributedString(
                 string: title,
-                attributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)]
+                attributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: DmText.t12, weight: .medium)]
             )
         } else {
             // 板块指数
@@ -183,7 +183,7 @@ final class MenuBarController: NSObject, ObservableObject {
             }
             button.attributedTitle = NSAttributedString(
                 string: title,
-                attributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)]
+                attributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: DmText.t12, weight: .medium)]
             )
         }
     }
@@ -195,8 +195,9 @@ final class MenuBarController: NSObject, ObservableObject {
         let hosting = NSHostingView(rootView: contentView)
         hosting.frame = NSRect(x: 0, y: 0, width: 400, height: 500)
         // 圆角裁剪：面板本身透明，内容视图裁出圆角
+        // 取「弹窗 / 大容器」档（r16），与 audio 的结果弹窗同一角色
         hosting.wantsLayer = true
-        hosting.layer?.cornerRadius = 14
+        hosting.layer?.cornerRadius = DmRadius.r16
         hosting.layer?.masksToBounds = true
 
         panel = FocusablePanel(

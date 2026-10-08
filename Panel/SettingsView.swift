@@ -30,13 +30,13 @@ struct SettingsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: DmSpace.s24) {
                 // ===== 自选板块 =====
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: DmSpace.s6) {
                     sectionHeader(
                         title: "自选板块",
                     trailing: IconButton(iconName: showAddSector ? "minus" : "plus") {
-                        withAnimation(.easeInOut(duration: 0.15)) {
+                        withAnimation(.easeInOut(duration: DmMotion.fast)) {
                             showAddSector.toggle()
                         }
                     }
@@ -47,25 +47,25 @@ struct SettingsView: View {
                         VStack(spacing: 0) {
                             if showAddSector {
                                 sectorAddRow
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 10)
+                                    .padding(.horizontal, DmSpace.s14)
+                                    .padding(.vertical, DmSpace.s10)
                                 Divider().opacity(0.4)
                             }
                             if controller.configStore.config.sectors.isEmpty {
                                 Text("暂无板块，点击 + 添加")
-                                    .font(.system(size: 12))
+                                    .font(.system(size: DmText.t12))
                                     .foregroundColor(Color.dmInk2)
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 14)
+                                    .padding(.vertical, DmSpace.s14)
                             } else {
                                 ForEach(Array(controller.configStore.config.sectors.enumerated()), id: \.element.code) { idx, s in
                                     HStack {
-                                        Text(s.name).font(.system(size: 13))
-                                        Text(s.code).font(.system(size: 11)).foregroundColor(Color.dmInk2)
+                                        Text(s.name).font(.system(size: DmText.t13))
+                                        Text(s.code).font(.system(size: DmText.t11)).foregroundColor(Color.dmInk2)
                                         Spacer()
                                     }
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 9)
+                                    .padding(.horizontal, DmSpace.s14)
+                                    .padding(.vertical, DmSpace.s8)
                                     .contentShape(Rectangle())
                                     .contextMenu {
                                         Button(role: .destructive) {
@@ -92,11 +92,11 @@ struct SettingsView: View {
                 }
 
                 // ===== 自选基金 =====
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: DmSpace.s6) {
                     sectionHeader(
                         title: "自选基金",
                     trailing: IconButton(iconName: showAddFund ? "minus" : "plus") {
-                        withAnimation(.easeInOut(duration: 0.15)) {
+                        withAnimation(.easeInOut(duration: DmMotion.fast)) {
                             showAddFund.toggle()
                         }
                     }
@@ -107,25 +107,25 @@ struct SettingsView: View {
                         VStack(spacing: 0) {
                             if showAddFund {
                                 fundAddRow
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 10)
+                                    .padding(.horizontal, DmSpace.s14)
+                                    .padding(.vertical, DmSpace.s10)
                                 Divider().opacity(0.4)
                             }
                             if controller.configStore.config.funds.isEmpty {
                                 Text("暂无基金，点击 + 添加")
-                                    .font(.system(size: 12))
+                                    .font(.system(size: DmText.t12))
                                     .foregroundColor(Color.dmInk2)
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 14)
+                                    .padding(.vertical, DmSpace.s14)
                             } else {
                                 ForEach(Array(controller.configStore.config.funds.enumerated()), id: \.element.code) { idx, f in
                                     HStack {
-                                        Text(f.name).font(.system(size: 13))
-                                        Text(f.code).font(.system(size: 11)).foregroundColor(Color.dmInk2)
+                                        Text(f.name).font(.system(size: DmText.t13))
+                                        Text(f.code).font(.system(size: DmText.t11)).foregroundColor(Color.dmInk2)
                                         Spacer()
                                     }
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 9)
+                                    .padding(.horizontal, DmSpace.s14)
+                                    .padding(.vertical, DmSpace.s8)
                                     .contentShape(Rectangle())
                                     .contextMenu {
                                         Button(role: .destructive) {
@@ -145,14 +145,14 @@ struct SettingsView: View {
                 }
 
                 // ===== 状态栏显示 =====
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: DmSpace.s6) {
                     sectionHeader(title: "状态栏显示", trailing: EmptyView())
 
                     SettingsCard {
                         VStack(spacing: 0) {
                             HStack {
                                 Text("显示内容")
-                                    .font(.system(size: 13))
+                                    .font(.system(size: DmText.t13))
                                 Spacer()
                                 Picker("", selection: Binding(
                                     get: { controller.configStore.config.statusBarSource ?? "gold" },
@@ -169,14 +169,14 @@ struct SettingsView: View {
                                 .pickerStyle(.menu)
                                 .controlSize(.small)
                             }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
+                            .padding(.horizontal, DmSpace.s14)
+                            .padding(.vertical, DmSpace.s8)
                         }
                     }
                 }
 
                 // ===== 预警规则 =====
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: DmSpace.s6) {
                     sectionHeader(
                         title: "预警规则",
                         trailing: IconButton(iconName: "plus") {
@@ -191,7 +191,7 @@ struct SettingsView: View {
                 }
 
                 // ===== 关于 =====
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: DmSpace.s6) {
                     sectionHeader(title: "关于", trailing: EmptyView())
 
                     SettingsCard {
@@ -199,21 +199,21 @@ struct SettingsView: View {
                             // 版本号
                             HStack {
                                 Text("当前版本")
-                                    .font(.system(size: 13))
+                                    .font(.system(size: DmText.t13))
                                 Spacer()
                                 Text("v\(controller.updateChecker.currentVersion)")
-                                    .font(.system(size: 13))
+                                    .font(.system(size: DmText.t13))
                                     .foregroundColor(Color.dmInk2)
                             }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
+                            .padding(.horizontal, DmSpace.s14)
+                            .padding(.vertical, DmSpace.s8)
 
                             Divider().opacity(0.4)
 
                             // 自动检查更新开关
                             HStack {
                                 Text("自动检查更新")
-                                    .font(.system(size: 13))
+                                    .font(.system(size: DmText.t13))
                                 Spacer()
                                 Toggle("", isOn: Binding(
                                     get: { controller.updateChecker.autoCheckEnabled },
@@ -222,8 +222,8 @@ struct SettingsView: View {
                                 .labelsHidden()
                                 .toggleStyle(GoldToggleStyle())
                             }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
+                            .padding(.horizontal, DmSpace.s14)
+                            .padding(.vertical, DmSpace.s8)
                             .contentShape(Rectangle())
 
                             Divider().opacity(0.4)
@@ -231,17 +231,17 @@ struct SettingsView: View {
                             // 立即检查
                             HStack {
                                 Text("检查最新版本")
-                                    .font(.system(size: 13))
+                                    .font(.system(size: DmText.t13))
                                 Spacer()
                                 // 状态反馈
                                 if controller.updateChecker.manualCheckStatus != .idle {
                                     if controller.updateChecker.manualCheckStatus == .checking {
                                         Text("检查中…")
-                                            .font(.system(size: 11))
+                                            .font(.system(size: DmText.t11))
                                             .foregroundColor(Color.dmInk2)
                                     } else {
                                         Text(statusText(controller.updateChecker.manualCheckStatus))
-                                            .font(.system(size: 11))
+                                            .font(.system(size: DmText.t11))
                                             .foregroundColor(statusColor(controller.updateChecker.manualCheckStatus))
                                     }
                                 }
@@ -256,12 +256,11 @@ struct SettingsView: View {
                                 } label: {
                                     Text(controller.updateChecker.manualCheckStatus == .newVersion ? "下载更新" : "立即检查")
                                 }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
+                                .buttonStyle(CompactButtonStyle())
                                 .disabled(controller.updateChecker.isChecking)
                             }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
+                            .padding(.horizontal, DmSpace.s14)
+                            .padding(.vertical, DmSpace.s8)
 
                             Divider().opacity(0.4)
 
@@ -271,23 +270,23 @@ struct SettingsView: View {
                                     NSWorkspace.shared.open(url)
                                 }
                             } label: {
-                                HStack(spacing: 4) {
-                                    AppIcon(name: "coffee", size: 13)
+                                HStack(spacing: DmSpace.s4) {
+                                    LucideIcon("coffee", size: DmIcon.i14)
                                     Text("请我喝杯咖啡")
-                                        .font(.system(size: 13))
+                                        .font(.system(size: DmText.t13))
                                     Spacer()
                                 }
                                 .foregroundColor(Color.dmAccent)
                             }
                             .buttonStyle(.plain)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
+                            .padding(.horizontal, DmSpace.s14)
+                            .padding(.vertical, DmSpace.s8)
                         }
                     }
                 }
 
                 // ===== 运行状态（只读）：回答「这份数从哪来、日历管到什么时候」 =====
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: DmSpace.s6) {
                     sectionHeader(title: "运行状态", trailing: EmptyView())
 
                     SettingsCard {
@@ -304,38 +303,38 @@ struct SettingsView: View {
                             // 坏配置提示：不提示的话，用户只会发现自己少了两只基金
                             if controller.configStore.repairedCount > 0 {
                                 Divider().opacity(0.4)
-                                HStack(spacing: 6) {
-                                    AppIcon(name: "warning", size: 12)
+                                HStack(spacing: DmSpace.s6) {
+                                    LucideIcon("warning", size: DmIcon.i12)
                                         .foregroundColor(Color.dmWarn)
                                     Text("\(controller.configStore.repairedCount) 项配置无法读取，已重置")
-                                        .font(.system(size: 12))
+                                        .font(.system(size: DmText.t12))
                                         .foregroundColor(Color.dmWarn)
                                     Spacer()
                                 }
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 9)
+                                .padding(.horizontal, DmSpace.s14)
+                                .padding(.vertical, DmSpace.s8)
                             }
                         }
                     }
                 }
 
                 // ===== 退出程序（独立卡片） =====
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: DmSpace.s6) {
                     SettingsCard {
                         Button {
                             NSApplication.shared.terminate(nil)
                         } label: {
-                            HStack(spacing: 6) {
-                                AppIcon(name: "power", size: 13)
+                            HStack(spacing: DmSpace.s6) {
+                                LucideIcon("power", size: DmIcon.i14)
                                 Text("退出投资监控")
-                                    .font(.system(size: 13))
+                                    .font(.system(size: DmText.t13))
                                 Spacer()
                             }
                             .foregroundColor(Color.dmDanger)
                         }
                         .buttonStyle(.plain)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 9)
+                        .padding(.horizontal, DmSpace.s14)
+                        .padding(.vertical, DmSpace.s8)
                     }
                 }
 
@@ -345,7 +344,7 @@ struct SettingsView: View {
                         .foregroundColor(Color.dmWarn)
                 }
             }
-            .padding(16)
+            .padding(DmSpace.s16)
         }
         .frame(maxWidth: .infinity)
         .sheet(isPresented: $showAddAlert) {
@@ -354,16 +353,16 @@ struct SettingsView: View {
     }
 
     /// 区块标题行：标题在左、操作按钮在右（对齐 macOS 系统设置标题在卡片外的风格）
-    /// 统一固定 28pt 高度，消除有按钮/无按钮时的间距差异
+    /// 统一固定高度，消除有按钮/无按钮时的间距差异。行高取紧凑档（与 `IconButton` 同档）
     private func sectionHeader<Trailing: View>(title: String, trailing: Trailing) -> some View {
         HStack {
             Text(title)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: DmText.t13, weight: .semibold))
                 .foregroundColor(Color.dmInk)
             Spacer()
             trailing
         }
-        .frame(height: 28)
+        .frame(height: DmControl.h28)
     }
 
     // MARK: - 运行状态行
@@ -372,15 +371,15 @@ struct SettingsView: View {
     private func statusRow(_ label: String, _ value: String) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 13))
+                .font(.system(size: DmText.t13))
             Spacer()
             Text(value)
-                .font(.system(size: 13))
+                .font(.system(size: DmText.t13))
                 .foregroundColor(Color.dmInk2)
                 .lineLimit(1)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
+        .padding(.horizontal, DmSpace.s14)
+        .padding(.vertical, DmSpace.s8)
     }
 
     /// 数据源名：空串与 nil 都显示占位符，避免出现一行空白让人以为界面坏了
@@ -449,7 +448,7 @@ struct SettingsView: View {
         sectorLookup = .idle
         lastSearchedSectorCode = ""
         message = nil
-        withAnimation(.easeInOut(duration: 0.15)) { showAddSector = false }
+        withAnimation(.easeInOut(duration: DmMotion.fast)) { showAddSector = false }
         Task { await controller.refresh() }
     }
 
@@ -491,15 +490,15 @@ struct SettingsView: View {
         fundLookup = .idle
         lastSearchedFundCode = ""
         message = nil
-        withAnimation(.easeInOut(duration: 0.15)) { showAddFund = false }
+        withAnimation(.easeInOut(duration: DmMotion.fast)) { showAddFund = false }
         Task { await controller.refresh() }
     }
 
     // MARK: - 添加表单行（展开时显示，只输入代码自动识别名称）
 
     private var sectorAddRow: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 8) {
+        VStack(spacing: DmSpace.s6) {
+            HStack(spacing: DmSpace.s8) {
                 FormTextField(placeholder: "板块代码 (BK0475)", text: $newSectorCode)
                     .onSubmit { lookupSector() }
                 searchButton(
@@ -514,8 +513,8 @@ struct SettingsView: View {
     }
 
     private var fundAddRow: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 8) {
+        VStack(spacing: DmSpace.s6) {
+            HStack(spacing: DmSpace.s8) {
                 FormTextField(placeholder: "基金代码 (161725)", text: $newFundCode)
                     .onSubmit { lookupFund() }
                 searchButton(
@@ -529,7 +528,7 @@ struct SettingsView: View {
         }
     }
 
-    /// 搜索按钮：与输入框等高（30pt），三种状态循环
+    /// 搜索按钮：与输入框等高（表单档 38pt），三种状态循环
     /// - 就绪态（代码未改 / 搜索完成）：无底色 + 主色放大镜
     /// - 待搜索态（代码已改尚未搜索）：主色底 + 深色放大镜
     /// - 搜索中：无底色 + 主色放大镜 + 旋转
@@ -538,11 +537,11 @@ struct SettingsView: View {
         let trimmed = code.trimmingCharacters(in: .whitespaces)
         let needsSearch = !trimmed.isEmpty && trimmed.uppercased() != lastSearched.uppercased() && !isSearching
         Button(action: action) {
-            AppIcon(name: "search", size: 12)
+            LucideIcon("search", size: DmIcon.i16)
                 .foregroundColor(needsSearch ? Color.dmOnAccent : Color.dmAccent)
-                .frame(width: 30, height: 30)
+                .frame(width: DmControl.h38, height: DmControl.h38)
                 .background(
-                    RoundedRectangle(cornerRadius: 6)
+                    RoundedRectangle(cornerRadius: DmRadius.r8)
                         .fill(needsSearch ? Color.dmAccentFill : Color.clear)
                 )
         }
@@ -558,19 +557,19 @@ struct SettingsView: View {
         case .idle:
             EmptyView()
         case .loading:
-            HStack(spacing: 4) {
+            HStack(spacing: DmSpace.s4) {
                 ProgressView()
                     .controlSize(.small)
                 Text("查询中…")
-                    .font(.system(size: 11))
+                    .font(.system(size: DmText.t11))
                     .foregroundColor(Color.dmInk2)
             }
         case .found(let name):
-            HStack(spacing: 6) {
-                AppIcon(name: "check-circle", size: 10)
+            HStack(spacing: DmSpace.s6) {
+                LucideIcon("check-circle", size: DmIcon.i10)
                     .foregroundColor(.down)
                 Text(name)
-                    .font(.system(size: 11))
+                    .font(.system(size: DmText.t11))
                     .foregroundColor(Color.dmInk)
                 Spacer()
                 Button {
@@ -581,18 +580,17 @@ struct SettingsView: View {
                     }
                 } label: {
                     Image(systemName: "plus")
+                        .font(.system(size: DmText.t12))
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-                .tint(Color.dmAccentFill)
+                .buttonStyle(CompactButtonStyle())
                 .help("添加\(label)")
             }
         case .notFound:
-            HStack(spacing: 4) {
-                    AppIcon(name: "warning", size: 10)
+            HStack(spacing: DmSpace.s4) {
+                    LucideIcon("warning", size: DmIcon.i10)
                     .foregroundColor(Color.dmWarn)
                 Text("未找到该\(label)，请检查代码")
-                    .font(.system(size: 11))
+                    .font(.system(size: DmText.t11))
                     .foregroundColor(Color.dmInk2)
                 Spacer()
                 // 识别失败时仍允许手动添加（用代码作名称）
@@ -604,10 +602,8 @@ struct SettingsView: View {
                     }
                 } label: {
                     Text("仍要添加")
-                        .font(.system(size: 11))
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+                .buttonStyle(CompactButtonStyle())
                 .help("用代码作为名称添加")
             }
         }

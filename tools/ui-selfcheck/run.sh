@@ -3,7 +3,7 @@
 # 界面结构门禁：渲染设置页，检查卡片有没有「被拆散」
 #
 # 用法: ./tools/ui-selfcheck/run.sh
-# 覆盖: SettingsCard / MarketCard 这类容器型 View 的「多子视图 modifier 分发」回归 ——
+# 覆盖: SettingsCard / FormCard 这类容器型 View 的「多子视图 modifier 分发」回归 ——
 #       content 若是多个平铺子视图，背景与描边会逐个子视图各画一遍，
 #       一张卡片变成 N 个小卡片，行间多出约 4pt 的隐式间距。
 #       编译全绿、签名通过、启动不崩，只有像素看得出来，所以这里真的渲染一次再判。
@@ -18,7 +18,7 @@
 # 不是窗口高度 —— 否则图片底部会留一大片空白，高度读数也失去意义。
 #
 # 反向验证（改判据时必须重跑，否则可能写出"永远通过"的门禁）：
-#   把 DesignSystem.swift 里 SettingsCard/MarketCard 的 VStack(spacing: 0) 包裹去掉，
+#   把 DesignSystem.swift 里 SettingsCard/FormCard 的 VStack(spacing: 0) 包裹去掉，
 #   再跑本脚本，应看到 dark 主题报 6 处 4.0pt 横缝、整页高从 1256pt 变成 1286pt 且失败退出。
 #
 # 源码清单从 build_dmg.sh 第 1 步提取，与正式构建共用同一份，避免两处漂移。

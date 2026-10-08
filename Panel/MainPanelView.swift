@@ -33,16 +33,16 @@ struct MainPanelView: View {
                 content
                 if let err = controller.errorMessage {
                     Divider()
-                    HStack(spacing: 4) {
-                        AppIcon(name: "warning", size: 9)
+                    HStack(spacing: DmSpace.s4) {
+                        LucideIcon("warning", size: DmIcon.i10)
                             .foregroundColor(Color.dmWarn)
                         Text(err)
                             .font(.caption2)
                             .foregroundColor(Color.dmInk2)
                             .lineLimit(1)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, DmSpace.s12)
+                    .padding(.vertical, DmSpace.s4)
                 }
             }
         }
@@ -52,7 +52,7 @@ struct MainPanelView: View {
             if let target = target {
                 // 通知点击触发的 Tab 切换：先退出设置页（如果在），再切 Tab
                 if showSettings { showSettings = false }
-                withAnimation(.easeInOut(duration: 0.15)) {
+                withAnimation(.easeInOut(duration: DmMotion.fast)) {
                     tab = target
                 }
                 // 清空标记，避免重复触发
@@ -67,7 +67,7 @@ struct MainPanelView: View {
     private var header: some View {
         HStack {
             Text(showSettings ? "设置" : "Dreamanual 投资监控")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: DmText.t15, weight: .semibold))
             Spacer()
             if showSettings {
                 IconButton(iconName: "close") {
@@ -77,19 +77,19 @@ struct MainPanelView: View {
             } else {
                 if controller.allMarketsClosed {
                     Text(controller.panelStatusText)
-                        .font(.system(size: 11))
+                        .font(.system(size: DmText.t11))
                         .foregroundColor(Color.dmInk3)
                 } else if controller.countdown == 0 {
                     Text(controller.panelStatusText)
-                        .font(.system(size: 11))
+                        .font(.system(size: DmText.t11))
                         .foregroundColor(Color.dmInk3)
                 } else if controller.isLoading {
                     Text("刷新中…")
-                        .font(.system(size: 11))
+                        .font(.system(size: DmText.t11))
                         .foregroundColor(Color.dmInk3)
                 } else {
                     Text("\(controller.countdown) 秒后更新")
-                        .font(.system(size: 11))
+                        .font(.system(size: DmText.t11))
                         .foregroundColor(Color.dmInk3)
                         .monospacedDigit()
                 }
@@ -99,8 +99,8 @@ struct MainPanelView: View {
                 .help("设置")
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, DmSpace.s16)
+        .padding(.vertical, DmSpace.s10)
     }
 
     // Tab 切换
@@ -109,9 +109,9 @@ struct MainPanelView: View {
             SegmentedTabs(items: Tab.allCases, selection: $tab) { t in
                 t.rawValue
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 10)
-            .padding(.bottom, 8)
+            .padding(.horizontal, DmSpace.s16)
+            .padding(.top, DmSpace.s10)
+            .padding(.bottom, DmSpace.s8)
 
             // 板块页内多板块切换（仅板块 Tab 时显示，不占位）
             if tab == .cpo && controller.configStore.config.sectors.count > 1 {
@@ -153,9 +153,9 @@ struct MainPanelView: View {
             // 方案C：切换板块只刷新当前板块相关数据，不再触发全量 refresh
             Task { await controller.refreshSector(code: newCode) }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 6)
-        .padding(.bottom, 10)
+        .padding(.horizontal, DmSpace.s16)
+        .padding(.top, DmSpace.s6)
+        .padding(.bottom, DmSpace.s10)
     }
 }
 
@@ -167,17 +167,17 @@ struct UpdateBanner: View {
     let onIgnore: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
-            AppIcon(name: "update", size: 16)
+        HStack(spacing: DmSpace.s8) {
+            LucideIcon("update", size: DmIcon.i16)
                 .foregroundColor(Color.dmAccent)
 
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: DmSpace.s2) {
                 Text("发现新版本 v\(version)")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: DmText.t12, weight: .medium))
                     .foregroundColor(Color.dmInk)
                 if let notes, !notes.isEmpty {
                     Text(notes)
-                        .font(.system(size: 10))
+                        .font(.system(size: DmText.t10))
                         .foregroundColor(Color.dmInk2)
                         .lineLimit(1)
                 }
@@ -189,24 +189,17 @@ struct UpdateBanner: View {
                 if let url = URL(string: downloadUrl) { NSWorkspace.shared.open(url) }
             } label: {
                 Text("下载更新")
-                    .font(.system(size: 11, weight: .medium))
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-            .tint(Color.dmAccentFill)
+            .buttonStyle(PrimaryButtonStyle())
 
-            Button {
+            IconButton(iconName: "close") {
                 onIgnore()
-            } label: {
-                AppIcon(name: "close", size: 9)
-                    .foregroundColor(Color.dmInk2)
             }
-            .buttonStyle(.plain)
             .help("忽略此版本")
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(Color(red: 0.18, green: 0.20, blue: 0.22))
+        .padding(.horizontal, DmSpace.s14)
+        .padding(.vertical, DmSpace.s8)
+        .background(Color.dmPanel2)
     }
 }
 
@@ -216,10 +209,10 @@ struct GoldView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 14) {
+            VStack(spacing: DmSpace.s14) {
                 if let g = controller.gold {
                     // 头部卡片
-                    MarketCard {
+                    FormCard {
                         PriceHeader(
                             title: "沪金主连 (CNY/g)",
                             marketStatus: controller.goldMarketStatus,
@@ -232,7 +225,7 @@ struct GoldView: View {
 
                     // 分时图卡片
                     if let trend = controller.goldTrendData {
-                        MarketCard {
+                        FormCard {
                             TrendChart(trend: trend, mode: .shfeGold)
                         }
                     }
@@ -242,7 +235,7 @@ struct GoldView: View {
                         .padding(.top, 80)
                 }
             }
-            .padding(14)
+            .padding(DmSpace.s14)
         }
         .frame(maxWidth: .infinity)
     }
@@ -254,7 +247,7 @@ struct InfoCell: View {
     let value: String
 
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: DmSpace.s2) {
             Text(label)
                 .font(.caption2)
                 .foregroundColor(Color.dmInk2)

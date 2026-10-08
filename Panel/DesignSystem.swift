@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 // ============ 设计系统：共享组件 ============
 
@@ -13,6 +14,18 @@ import SwiftUI
 //   dmAccentSoft  选中态底（与 dmAccent2 配对）
 //   dmPanel / dmPanel2 / dmPanel3   面板 / 卡片 / 高亮行，依次提亮
 //   dmInk / dmInk2 / dmInk3         三级正文，依次变暗
+
+/// 全 app 固定深色。
+///
+/// 设计系统令牌只有深色一套，跟随系统会让浅色系统下的界面落到没有令牌覆盖的
+/// 分支上（窗口底色、卡片、文字全部退回系统色）。定义与音频转换、视频下载
+/// 逐字相同（设计系统第八节）—— 此前投资监控直接手写 `NSApp.appearance`，
+/// 同一个语义在四端三种落法。
+enum DreamanualAppearance {
+    static func apply() {
+        NSApp.appearance = NSAppearance(named: .darkAqua)
+    }
+}
 
 /// 交易状态
 enum MarketStatus: Equatable {
@@ -76,12 +89,12 @@ struct MarketStatusBadge: View {
     var body: some View {
         let d = StatusDescriptor.of(status)
         Text(d.text)
-            .font(.system(size: 10, weight: .medium))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 1)
+            .font(.system(size: DmText.t11, weight: .medium))
+            .padding(.horizontal, DmSpace.s6)
+            .padding(.vertical, DmSpace.s2)
             .background(d.background)
             .foregroundColor(d.color)
-            .cornerRadius(6)
+            .cornerRadius(DmRadius.r6)
     }
 }
 
@@ -111,14 +124,14 @@ struct SegmentedTabs<T: Hashable>: View {
                     selection = item
                 } label: {
                     Text(label(item))
-                        .font(.system(size: 12, weight: selected ? .medium : .regular))
+                        .font(.system(size: DmText.t12, weight: selected ? .medium : .regular))
                         .foregroundColor(selected ? Color.dmAccent2 : Color.dmInk2)
                         .lineLimit(1)
-                        .padding(.horizontal, style == .default ? 16 : 12)
-                        .padding(.vertical, 6)
+                        .padding(.horizontal, style == .default ? DmSpace.s16 : DmSpace.s12)
+                        .padding(.vertical, DmSpace.s6)
                         .frame(maxWidth: .infinity)
                         .background(
-                            RoundedRectangle(cornerRadius: 7)
+                            RoundedRectangle(cornerRadius: DmRadius.r6)
                                 .fill(Color.dmAccentSoft)
                                 .opacity(selected ? 1 : 0)
                         )
@@ -128,24 +141,34 @@ struct SegmentedTabs<T: Hashable>: View {
             }
         }
         .background(
-            RoundedRectangle(cornerRadius: 7)
+            RoundedRectangle(cornerRadius: DmRadius.r6)
                 .fill(Color.dmPanel)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 7)
+            RoundedRectangle(cornerRadius: DmRadius.r6)
                 .stroke(Color.dmLine2, lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 7))
+        .clipShape(RoundedRectangle(cornerRadius: DmRadius.r6))
     }
 }
 
 // ============ 设计系统：自定义图标 ============
 
-/// 统一加载 app bundle 内的 Lucide 图标（PNG template 模式）
-/// 用法：AppIcon("gear", size: 14).foregroundColor(Color.dmInk2)
-struct AppIcon: View {
+/// Lucide 线性图标（PNG template 模式）。
+///
+/// 名字与音频转换、视频下载的 `LucideIcon` 对齐（设计系统第八节）；加载方式
+/// 保留 PNG —— 投资监控的图标资源按 `icon-*.png` 打包。size 刻意不带默认值：
+/// 原先默认 `ic-14`、音频转换默认 16，同一句调用在两个 app 里画出两个尺寸。
+///
+/// 用法：`LucideIcon("gear", size: DmIcon.i14).foregroundColor(Color.dmInk2)`
+struct LucideIcon: View {
     let name: String
-    var size: CGFloat = 14
+    var size: CGFloat
+
+    init(_ name: String, size: CGFloat) {
+        self.name = name
+        self.size = size
+    }
 
     var body: some View {
         if let nsImage = NSImage(named: "icon-\(name)") ?? loadFromBundle("icon-\(name)") {
@@ -177,7 +200,8 @@ struct AppIcon: View {
 // ============ 设计系统：图标按钮 ============
 
 /// 带悬浮反馈的图标按钮：解决 nonactivatingPanel 下 .borderless/.plain 无悬浮态问题
-/// 悬浮时背景变亮 + 图标颜色提亮，让用户感知可点击
+/// 悬浮时背景变亮 + 图标颜色提亮，让用户感知可点击。
+/// 取「紧凑规格」的方形版：28×28 + 图标 12 + 圆角 6。
 struct IconButton: View {
     let iconName: String
     let action: () -> Void
@@ -186,11 +210,11 @@ struct IconButton: View {
 
     var body: some View {
         Button(action: action) {
-            AppIcon(name: iconName, size: 14)
+            LucideIcon(iconName, size: DmIcon.i12)
                 .foregroundColor(isHovered ? Color.dmInk : Color.dmInk2)
-                .frame(width: 28, height: 28)
+                .frame(width: DmControl.h28, height: DmControl.h28)
                 .background(
-                    RoundedRectangle(cornerRadius: 6)
+                    RoundedRectangle(cornerRadius: DmRadius.r6)
                         .fill(isHovered ? Color.dmPanel3 : Color.clear)
                 )
         }
@@ -205,7 +229,7 @@ struct IconButton: View {
 struct GoldToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
         Button(action: { configuration.isOn.toggle() }) {
-            RoundedRectangle(cornerRadius: 9.5, style: .continuous)
+            RoundedRectangle(cornerRadius: DmRadius.r10, style: .continuous)
                 .fill(configuration.isOn ? Color.dmAccentFill : Color.dmPanel3)
                 .frame(width: 32, height: 19)
                 .overlay(
@@ -221,25 +245,134 @@ struct GoldToggleStyle: ToggleStyle {
                 )
         }
         .buttonStyle(.plain)
-        .animation(.easeInOut(duration: 0.15), value: configuration.isOn)
+        .animation(.easeInOut(duration: DmMotion.fast), value: configuration.isOn)
+    }
+}
+
+// ============ 设计系统：控件 ============
+
+/// 主按钮：实心强调色档，取设计系统「表单规格」（高 38 / 横向内边距 16 / 圆角 8 / 字号 13）。
+///
+/// `--accent-fill` 管承载元素的实心块底；悬停提亮到 fill-2（`dmAccentFill2`）——
+/// **invest 是唯一深字方案**：fill 与 accent 同 500 档、hover 反提 400 档，与白字方案
+/// 「hover 加深」相反。禁用态退中性：panel3 底 + ink3 字，悬停不再变色。
+///
+/// 「下载更新」「添加」「保存」此前走系统 `.borderedProminent` + `.controlSize(.small)`，
+/// 高度与描边都不受令牌管；现在四处统一走它。
+struct PrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @State private var isHovered = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: DmText.t13, weight: .medium))
+            .lineLimit(1)
+            .foregroundColor(isEnabled ? Color.dmOnAccent : Color.dmInk3)
+            .padding(.horizontal, DmSpace.s16)
+            .frame(height: DmControl.h38)
+            .background(
+                RoundedRectangle(cornerRadius: DmRadius.r8)
+                    .fill(fillColor)
+            )
+            .opacity(configuration.isPressed && isEnabled ? 0.85 : 1)
+            .onHover { isHovered = $0 }
+    }
+
+    private var fillColor: Color {
+        if !isEnabled { return .dmPanel3 }
+        return isHovered ? .dmAccentFill2 : .dmAccentFill
+    }
+}
+
+/// 次级按钮：panel2 底 + ink2 字，悬停提到 panel3 底 + ink 字
+/// （与视频下载手写行的悬停态同一套表达：panel3 底 + ink 字）。
+/// 尺寸与主按钮同取「表单规格」，只有配色不同 —— 弹窗里的「取消」用它。
+struct SecondaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @State private var isHovered = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: DmText.t13))
+            .lineLimit(1)
+            .foregroundColor(foreground)
+            .padding(.horizontal, DmSpace.s16)
+            .frame(height: DmControl.h38)
+            .background(
+                RoundedRectangle(cornerRadius: DmRadius.r8)
+                    .fill(isEnabled && isHovered ? Color.dmPanel3 : Color.dmPanel2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DmRadius.r8)
+                    .strokeBorder(isEnabled ? Color.dmLine : Color.dmLine2, lineWidth: 1)
+            )
+            .opacity(configuration.isPressed && isEnabled ? 0.85 : 1)
+            .onHover { isHovered = $0 }
+    }
+
+    private var foreground: Color {
+        if !isEnabled { return .dmInk3 }
+        return isHovered ? Color.dmInk : Color.dmInk2
+    }
+}
+
+/// 小号按钮：取「紧凑规格」（高 28 / 横向内边距 10 / 圆角 6 / 字号 12）。
+///
+/// 面板内的小动作（「立即检查」「仍要添加」「选择…」）用它，取代系统
+/// `.bordered` + `.controlSize(.small)` —— 系统那档的描边与文字都不受令牌管，
+/// 深色下的边框是系统灰，与 `--line` 对不上。
+struct CompactButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @State private var isHovered = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: DmText.t12))
+            .lineLimit(1)
+            .foregroundColor(foreground)
+            .padding(.horizontal, DmSpace.s10)
+            .frame(height: DmControl.h28)
+            .background(
+                RoundedRectangle(cornerRadius: DmRadius.r6)
+                    .fill(isEnabled && isHovered ? Color.dmPanel3 : Color.dmPanel2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DmRadius.r6)
+                    .strokeBorder(isEnabled ? Color.dmLine : Color.dmLine2, lineWidth: 1)
+            )
+            .opacity(configuration.isPressed && isEnabled ? 0.85 : 1)
+            .onHover { isHovered = $0 }
+    }
+
+    private var foreground: Color {
+        if isEnabled { return isHovered ? Color.dmInk : Color.dmInk2 }
+        return .dmInk3
     }
 }
 
 // ============ 设计系统：表单组件 ============
 
-/// 表单标签：统一 12pt secondary，与控件间距 6pt
+/// 表单标签：12pt secondary + medium，与控件间距 6pt（设计系统第八节）。
+/// 原先是 regular，与正文同重，标签与提示文字分不开。
 struct FormLabel: View {
     let text: String
 
     var body: some View {
         Text(text)
-            .font(.system(size: 12))
+            .font(.system(size: DmText.t12, weight: .medium))
             .foregroundColor(Color.dmInk2)
     }
 }
 
-/// 自定义输入框：可见边框 + 聚焦高亮，解决系统默认边框不可见问题
-/// - 高度 28pt，圆角 6pt，底色 `dmPanel3`（高亮行档），边框 `dmLine2` 常态 / `dmAccent2` 聚焦
+/// 自定义输入框：可见边框 + 聚焦高亮，解决系统默认边框不可见问题。
+///
+/// 取设计系统**表单规格**（高 38 / 横向内边距 12 / 字号 13 / 圆角 8），与视频下载
+/// 的 `formField()`、密码管理的 `.inp` 同档 —— 横向内边距比按钮小一档：按钮的标签
+/// 居中、两边要留呼吸；输入框的文字起点就是内边距，再给 16 会让文字离边太远。
+///
+/// 底色 `dmPanel3`（高亮行档，本 app 的输入框嵌在 `panel-2` 卡片里，相邻一档才分得出），
+/// 边框 `dmLine2` 1px 常态 / `dmAccentLine` 1px 聚焦（设计系统第八节）。
+/// 原先常态 0.5px、聚焦 `dmAccent2` 1.5px，与视频下载、密码管理两个端都不同。
 struct FormTextField: View {
     let placeholder: String
     @Binding var text: String
@@ -250,20 +383,19 @@ struct FormTextField: View {
     var body: some View {
         TextField(placeholder, text: $text)
             .textFieldStyle(.plain)
-            .font(.system(size: 14))
+            .font(.system(size: DmText.t13))
             .focused($isFocused)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .padding(.horizontal, DmSpace.s12)
             .background(Color.dmPanel3)
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(
-                        isFocused ? Color.dmAccent2 : Color.dmLine2,
-                        lineWidth: isFocused ? 1.5 : 0.5
+                RoundedRectangle(cornerRadius: DmRadius.r8)
+                    .strokeBorder(
+                        isFocused ? Color.dmAccentLine : Color.dmLine2,
+                        lineWidth: 1
                     )
             )
-            .cornerRadius(6)
-            .frame(height: 30)
+            .cornerRadius(DmRadius.r8)
+            .frame(height: DmControl.h38)
             .frame(width: width)
     }
 }
@@ -279,14 +411,23 @@ struct FormSection<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DmSpace.s8) {
             FormLabel(text: label)
             content
         }
     }
 }
 
-/// 表单卡片容器：统一内边距 14pt、圆角 10pt、可见边框
+/// 内容卡片：底 `panel-2` / 圆角 12 / 描边 `line-2` 0.5px / 内边距 14（设计系统第八节）。
+///
+/// 原先是 `FormCard` 与 `MarketCard` 两个容器并排，只差一行 `frame(maxWidth: .infinity)`；
+/// 收成一个，名字取 `FormCard`（语义更通用），实现取 `MarketCard` 那份 —— 它带
+/// TupleView 保护。调用点（行情页、板块页）已并入。
+///
+/// TupleView 风险：content 若是多个平铺子视图，下面这组 modifier 会**逐个分发到
+/// 每个子视图**上 —— 背景与描边各画一遍，一张卡片被打散成 N 个独立小卡片，行间
+/// 还会多出隐式间距。先收进 spacing:0 的 VStack 再套样式，调用点怎么写都不会重演
+/// （ui-selfcheck 的容器回归守着这条）。
 struct FormCard<Content: View>: View {
     let content: Content
 
@@ -295,38 +436,15 @@ struct FormCard<Content: View>: View {
     }
 
     var body: some View {
-        content
-            .padding(14)
-            .background(Color.dmPanel2)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.dmLine2, lineWidth: 0.5)
-            )
-    }
-}
-
-/// 行情卡片容器：圆角12、边框0.10、内边距14，对齐 macOS Tahoe 内容卡片风格
-struct MarketCard<Content: View>: View {
-    let content: Content
-
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-
-    var body: some View {
-        // 与 SettingsCard 同源风险：content 若是多个平铺子视图（TupleView），下面这组
-        // modifier 会逐个分发到每个子视图上，卡片被打散成多个小块。先收进 spacing:0
-        // 的 VStack 再套样式，将来调用点怎么写都不会重演。
         VStack(spacing: 0) {
             content
         }
         .frame(maxWidth: .infinity)
-        .padding(14)
+        .padding(DmSpace.s14)
         .background(Color.dmPanel2)
-        .cornerRadius(12)
+        .cornerRadius(DmRadius.r12)
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: DmRadius.r12)
                 .stroke(Color.dmLine2, lineWidth: 0.5)
         )
     }
@@ -348,9 +466,9 @@ struct SettingsCard<Content: View>: View {
             content
         }
         .background(Color.dmPanel2)
-        .cornerRadius(12)
+        .cornerRadius(DmRadius.r12)
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: DmRadius.r12)
                 .stroke(Color.dmLine2, lineWidth: 0.5)
         )
     }
@@ -368,9 +486,9 @@ struct PriceHeader: View {
     var quoteAt: Date? = nil
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: DmSpace.s4) {
             // 标签行
-            HStack(spacing: 6) {
+            HStack(spacing: DmSpace.s6) {
                 Text(title)
                     .font(.caption)
                     .foregroundColor(Color.dmInk2)
@@ -381,11 +499,11 @@ struct PriceHeader: View {
 
             // 大价格
             Text(price)
-                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .font(.system(size: DmText.t34, weight: .bold, design: .rounded))
                 .foregroundColor(Color.trend(changePct))
 
             // 涨跌幅 + 次要信息 + 行情时间
-            HStack(spacing: 12) {
+            HStack(spacing: DmSpace.s12) {
                 Text(Format.pct(changePct))
                     .font(.callout.weight(.semibold))
                     .foregroundColor(Color.trend(changePct))
@@ -394,10 +512,10 @@ struct PriceHeader: View {
                         .font(.caption2)
                         .foregroundColor(Color.dmInk2)
                 }
-                Spacer(minLength: 6)
+                Spacer(minLength: DmSpace.s6)
                 if let fresh = DataFreshness.display(quoteAt: quoteAt, status: marketStatus ?? .closed) {
                     Text(fresh.text)
-                        .font(.system(size: 10))
+                        .font(.system(size: DmText.t10))
                         .foregroundColor(fresh.isStale ? StatusDescriptor.delayed.color : Color.dmInk3)
                         .lineLimit(1)
                 }

@@ -67,10 +67,10 @@ struct TrendChart: View {
                 HStack(spacing: 0) {
                     Spacer()
                     Text("最后更新 \(lastUpdateText)")
-                        .font(.system(size: 9))
+                        .font(.system(size: DmText.t10))
                         .foregroundColor(Color.dmInk3)
                 }
-                .padding(.top, 2)
+                .padding(.top, DmSpace.s2)
             }
         }
     }
@@ -132,6 +132,10 @@ struct TrendChart: View {
     private static let shfeGoldTotalMinutes: Double = 570
 
     // MARK: - 布局参数
+    //
+    // 以下都是 **Canvas 内部的绘图坐标与线宽**（左右上下留白、虚线节距、气泡内边距、
+    // 描边粗细），不是界面尺度：它们只决定这张图怎么画，换个容器尺寸也不会跟着变。
+    // 所以刻意不进令牌，与布局层的 `DmSpace` / `DmRadius` 是两回事。
 
     private var leftPad: Double { 8.0 }
     private var topPad: Double { 10.0 }

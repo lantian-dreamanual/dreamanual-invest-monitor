@@ -37,8 +37,8 @@ struct AlertRuleList: View {
         VStack(spacing: 0) {
             // 总开关行：全部规则一键启停，样式与单行开关一致
             if !controller.alertConfig.rules.isEmpty {
-                HStack(spacing: 6) {
-                    AppIcon(name: "bell", size: 12)
+                HStack(spacing: DmSpace.s6) {
+                    LucideIcon("bell", size: DmIcon.i12)
                         .foregroundColor(Color.dmInk2)
                         .frame(width: 18)
                     Text("全部规则")
@@ -54,22 +54,22 @@ struct AlertRuleList: View {
                     .toggleStyle(GoldToggleStyle())
                     .labelsHidden()
                 }
-                .padding(.horizontal, 10)
-                .frame(height: 38)
+                .padding(.horizontal, DmSpace.s14)
+                .frame(height: DmControl.h38)
                 .background(Color.dmPanel2)
                 Divider().opacity(0.6)
             }
 
             if controller.alertConfig.rules.isEmpty {
-                HStack(spacing: 6) {
-                    AppIcon(name: "bell-off", size: 12)
+                HStack(spacing: DmSpace.s6) {
+                    LucideIcon("bell-off", size: DmIcon.i12)
                         .foregroundColor(Color.dmInk2)
                     Text("暂无预警规则，点击 + 添加")
-                        .font(.system(size: 12))
+                        .font(.system(size: DmText.t12))
                         .foregroundColor(Color.dmInk2)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
+                .padding(.vertical, DmSpace.s14)
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(groups.enumerated()), id: \.element.id) { idx, group in
@@ -140,8 +140,8 @@ struct AlertGroupView: View {
         VStack(spacing: 0) {
             // 组头
             Button(action: onToggleCollapse) {
-                HStack(spacing: 6) {
-                    AppIcon(name: appIconName, size: 10.5)
+                HStack(spacing: DmSpace.s6) {
+                    LucideIcon(appIconName, size: DmIcon.i12)
                         .foregroundColor(groupColor)
                         .frame(width: 18)
                     Text(group.name)
@@ -150,19 +150,19 @@ struct AlertGroupView: View {
                         .foregroundColor(Color.dmInk)
                         .lineLimit(1)
                     Text("\(group.rules.count) 条")
-                        .font(.system(size: 10))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 1)
+                        .font(.system(size: DmText.t10))
+                        .padding(.horizontal, DmSpace.s6)
+                        .padding(.vertical, DmSpace.s2)
                         .background(hasTodayHit ? Color.dmDangerSoft : Color.dmPanel3)
                         .foregroundColor(hasTodayHit ? Color.dmDangerInk : Color.dmInk2)
-                        .cornerRadius(6)
+                        .cornerRadius(DmRadius.r6)
                     Spacer()
-                    AppIcon(name: "chevron-right", size: 10)
+                    LucideIcon("chevron-right", size: DmIcon.i10)
                         .foregroundColor(Color.dmInk2)
                         .rotationEffect(.degrees(isCollapsed ? 0 : 90))
                 }
-                .padding(.horizontal, 10)
-                .frame(height: 38)
+                .padding(.horizontal, DmSpace.s14)
+                .frame(height: DmControl.h38)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -182,9 +182,9 @@ struct AlertGroupView: View {
             }
         }
         .background(Color.clear)
-        .cornerRadius(10)
+        .cornerRadius(DmRadius.r10)
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: DmRadius.r10)
                 .stroke(Color.dmLine2.opacity(allDisabled ? 0.5 : 1), lineWidth: 0.5)
         )
         .opacity(allDisabled ? 0.65 : 1)
@@ -210,17 +210,17 @@ struct AlertRuleRow: View {
     @State private var showEditSheet = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(alignment: .top, spacing: DmSpace.s8) {
+            VStack(alignment: .leading, spacing: DmSpace.s4) {
                 // 第一行：方向徽标 + 阈值
-                HStack(spacing: 6) {
+                HStack(spacing: DmSpace.s6) {
                     Text(directionText)
-                        .font(.system(size: 10, weight: .semibold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 1)
+                        .font(.system(size: DmText.t10, weight: .semibold))
+                        .padding(.horizontal, DmSpace.s6)
+                        .padding(.vertical, DmSpace.s2)
                         .foregroundColor(directionColor)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 6)
+                            RoundedRectangle(cornerRadius: DmRadius.r6)
                                 .stroke(directionColor.opacity(0.45), lineWidth: 0.8)
                         )
                     Text(AlertFormat.threshold(rule))
@@ -230,21 +230,21 @@ struct AlertRuleRow: View {
                         .foregroundColor(rule.enabled ? Color.dmInk : Color.dmInk2)
                     if rule.effectiveConfirmDays > 1 {
                         Text("确认 \(rule.effectiveConfirmDays) 日")
-                            .font(.system(size: 10))
+                            .font(.system(size: DmText.t10))
                             .foregroundColor(Color.dmInk2)
                     }
                     // 显式复位价必须露出来：否则它成了「看不见也改不掉」的隐形配置
                     if let rs = rule.resetThreshold {
                         Text("复位 \(AlertFormat.value(rule, rs))")
-                            .font(.system(size: 10))
+                            .font(.system(size: DmText.t10))
                             .foregroundColor(Color.dmInk2)
                     }
                 }
 
                 // 第二行：状态（由事件表派生，不是配置文案）
-                HStack(spacing: 4) {
+                HStack(spacing: DmSpace.s4) {
                     if let icon = stateIcon {
-                        AppIcon(name: icon, size: 10)
+                        LucideIcon(icon, size: DmIcon.i10)
                             .foregroundColor(stateColor)
                     }
                     Text(state.text)
@@ -265,8 +265,8 @@ struct AlertRuleRow: View {
             .toggleStyle(GoldToggleStyle())
             .labelsHidden()
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, DmSpace.s14)
+        .padding(.vertical, DmSpace.s8)
         .background(Color.dmPanel)
         .contentShape(Rectangle())
         .contextMenu {
@@ -291,7 +291,7 @@ struct AlertRuleRow: View {
     private var stateColor: Color {
         switch state.kind {
         case .hit: return .dmDanger
-        case .dead: return Color(red: 0.961, green: 0.620, blue: 0.043)   // #F59E0B 琥珀
+        case .dead: return .dmWarn
         default: return .dmInk2
         }
     }
@@ -337,7 +337,7 @@ struct AddAlertSheet: View {
     @State private var resetThreshold = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DmSpace.s12) {
             Text("添加预警规则")
                 .font(.headline)
 
@@ -411,7 +411,7 @@ struct AddAlertSheet: View {
             }
 
             // 方向 + 阈值 + 确认天数
-            HStack(alignment: .top, spacing: 10) {
+            HStack(alignment: .top, spacing: DmSpace.s10) {
                 FormSection("方向") {
                     SegmentedTabs(
                         items: [AlertDirection.above, AlertDirection.below],
@@ -432,13 +432,13 @@ struct AddAlertSheet: View {
 
             // 复位价：可选。留空 = 交回 0.5% 兜底迟滞带
             FormSection("复位价") {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DmSpace.s4) {
                     FormTextField(placeholder: "可选", text: $resetThreshold, width: 84)
-                    HStack(spacing: 4) {
-                        AppIcon(name: resetError == nil ? "info" : "warning", size: 10)
+                    HStack(spacing: DmSpace.s4) {
+                        LucideIcon(resetError == nil ? "info" : "warning", size: DmIcon.i10)
                             .foregroundColor(resetError == nil ? Color.dmInk2 : Color.dmDanger)
                         Text(resetError ?? "留空按触发价 0.5% 自动留迟滞带")
-                            .font(.system(size: 10))
+                            .font(.system(size: DmText.t10))
                             .foregroundColor(resetError == nil ? Color.dmInk2 : Color.dmDanger)
                     }
                 }
@@ -450,11 +450,11 @@ struct AddAlertSheet: View {
             }
 
             // 确认天数说明：只有这里能解释「连续几天才算数」这件事
-            HStack(spacing: 4) {
-                AppIcon(name: "info", size: 10)
+            HStack(spacing: DmSpace.s4) {
+                LucideIcon("info", size: DmIcon.i10)
                     .foregroundColor(Color.dmInk2)
                 Text("确认天数：连续几个判定价日站在触发区内才提醒（1–10，默认 1）")
-                    .font(.system(size: 10))
+                    .font(.system(size: DmText.t10))
                     .foregroundColor(Color.dmInk2)
             }
 
@@ -464,17 +464,16 @@ struct AddAlertSheet: View {
             HStack {
                 Spacer()
                 Button("取消") { isPresented = false }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(SecondaryButtonStyle())
                 Button("添加") {
                     addRule()
                     isPresented = false
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Color.dmAccentFill)
+                .buttonStyle(PrimaryButtonStyle())
                 .disabled(threshold.isEmpty || label.isEmpty || resetError != nil)
             }
         }
-        .padding(16)
+        .padding(DmSpace.s16)
         .frame(width: 380, height: 500)
         .fixedSize(horizontal: false, vertical: true)
     }
@@ -558,7 +557,7 @@ struct EditAlertSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DmSpace.s12) {
             Text("编辑预警规则")
                 .font(.headline)
 
@@ -633,7 +632,7 @@ struct EditAlertSheet: View {
             }
 
             // 方向 + 阈值 + 确认天数
-            HStack(alignment: .top, spacing: 10) {
+            HStack(alignment: .top, spacing: DmSpace.s10) {
                 FormSection("方向") {
                     SegmentedTabs(
                         items: [AlertDirection.above, AlertDirection.below],
@@ -654,13 +653,13 @@ struct EditAlertSheet: View {
 
             // 复位价：可选。留空 = 交回 0.5% 兜底迟滞带
             FormSection("复位价") {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: DmSpace.s4) {
                     FormTextField(placeholder: "可选", text: $resetThreshold, width: 84)
-                    HStack(spacing: 4) {
-                        AppIcon(name: resetError == nil ? "info" : "warning", size: 10)
+                    HStack(spacing: DmSpace.s4) {
+                        LucideIcon(resetError == nil ? "info" : "warning", size: DmIcon.i10)
                             .foregroundColor(resetError == nil ? Color.dmInk2 : Color.dmDanger)
                         Text(resetError ?? "留空按触发价 0.5% 自动留迟滞带")
-                            .font(.system(size: 10))
+                            .font(.system(size: DmText.t10))
                             .foregroundColor(resetError == nil ? Color.dmInk2 : Color.dmDanger)
                     }
                 }
@@ -671,11 +670,11 @@ struct EditAlertSheet: View {
                 FormTextField(placeholder: "第1档止盈 · 建议卖1/3", text: $label)
             }
 
-            HStack(spacing: 4) {
-                AppIcon(name: "info", size: 10)
+            HStack(spacing: DmSpace.s4) {
+                LucideIcon("info", size: DmIcon.i10)
                     .foregroundColor(Color.dmInk2)
                 Text("确认天数：连续几个判定价日站在触发区内才提醒（1–10，默认 1）")
-                    .font(.system(size: 10))
+                    .font(.system(size: DmText.t10))
                     .foregroundColor(Color.dmInk2)
             }
 
@@ -685,17 +684,16 @@ struct EditAlertSheet: View {
             HStack {
                 Spacer()
                 Button("取消") { isPresented = false }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(SecondaryButtonStyle())
                 Button("保存") {
                     saveRule()
                     isPresented = false
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Color.dmAccentFill)
+                .buttonStyle(PrimaryButtonStyle())
                 .disabled(threshold.isEmpty || label.isEmpty || resetError != nil)
             }
         }
-        .padding(16)
+        .padding(DmSpace.s16)
         .frame(width: 380, height: 500)
         .fixedSize(horizontal: false, vertical: true)
     }

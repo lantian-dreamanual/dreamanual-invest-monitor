@@ -216,7 +216,7 @@ else
     echo ""
     echo "❌ 界面结构门禁未通过：设置页有卡片被「拆散」成多个小块。"
     echo "   编译、签名、启动冒烟都是绿的，但真渲染出来的像素能看出来。"
-    echo "   最常见原因：SettingsCard / MarketCard 这类容器型 View 的 content 是多个"
+    echo "   最常见原因：SettingsCard / FormCard 这类容器型 View 的 content 是多个"
     echo "   平铺子视图（ViewBuilder 的 TupleView），.background / .cornerRadius / .overlay"
     echo "   会逐个子视图各画一遍 —— 一张卡片变成 N 张，行间还会多出约 4pt 隐式间距。"
     echo "   修法：容器内先包一层 VStack(spacing: 0)，再套背景与描边。"
