@@ -38,13 +38,6 @@ struct SettingsView: View {
         )
     }
 
-    /// 触发器上的当前值文案：来源是板块代码时反查板块名（反查不到兜底显原码）。
-    private var statusBarDisplay: String {
-        let source = controller.configStore.config.statusBarSource ?? "gold"
-        if source == "gold" { return "黄金(CNY/g)" }
-        return controller.configStore.config.sectors.first(where: { $0.code == source })?.name ?? source
-    }
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DmSpace.s24) {
@@ -171,12 +164,11 @@ struct SettingsView: View {
                                 Text("显示内容")
                                     .font(.system(size: DmText.t13))
                                 Spacer()
-                                DmMenuPicker(selection: statusBarSourceBinding, display: statusBarDisplay) {
-                                    Text("黄金(CNY/g)").tag("gold")
-                                    ForEach(controller.configStore.config.sectors) { sector in
-                                        Text(sector.name).tag(sector.code)
-                                    }
-                                }
+                                DmMenuPicker(
+                                    selection: statusBarSourceBinding,
+                                    items: [DmMenuPicker<String>.Item(value: "gold", label: "黄金(CNY/g)")]
+                                        + controller.configStore.config.sectors.map { .init(value: $0.code, label: $0.name) }
+                                )
                             }
                             .padding(.horizontal, DmSpace.s14)
                             .padding(.vertical, DmSpace.s8)

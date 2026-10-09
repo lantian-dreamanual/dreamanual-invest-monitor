@@ -493,7 +493,7 @@ final class MenuBarController: NSObject, ObservableObject {
             async let stocksTask = sectorService.fetchStocks(code: currentSectorCode)
             async let trendsTask = sectorService.fetchTrends(code: currentSectorCode, name: sectorName)
             let (s, st, td) = try await (indexTask, stocksTask, trendsTask)
-            self.sector = s
+            self.sector = alignSectorName(s)
             self.sectorStocks = st
             self.trendData = td
             sectorOK = true
@@ -507,7 +507,7 @@ final class MenuBarController: NSObject, ObservableObject {
                 codes: sectorCodes,
                 names: configStore.config.sectors.map { $0.name }
             ) {
-                self.allSectors = list
+                self.allSectors = list.map(alignSectorName)
             } else if sectorOK, let s = self.sector {
                 self.allSectors = [s]
             }
@@ -629,6 +629,17 @@ final class MenuBarController: NSObject, ObservableObject {
     }
 
     /// 方案C：切换板块时只刷新当前板块相关数据（指数 + 成分股 + 分时线），
+    /// 行情对象的显示名对齐配置名。板块以 code 为唯一标识，东财返回的官方名
+    /// （如 BK0475 → 银行Ⅱ）在用户改名后会一直顶着，展示层会分裂成
+    /// 「选择器显示配置名、行情卡显示官方名」（2026-10-09 实测）。统一在这里对齐。
+    private func alignSectorName(_ quote: SectorQuote) -> SectorQuote {
+        var quote = quote
+        if let cfg = configStore.config.sectors.first(where: { $0.code == quote.code }) {
+            quote.name = cfg.name
+        }
+        return quote
+    }
+
     /// 不触发黄金/基金的增量请求，降低板块切换时的卡顿
     @MainActor
     func refreshSector(code: String) async {
@@ -642,7 +653,7 @@ final class MenuBarController: NSObject, ObservableObject {
             async let stocksTask = sectorService.fetchStocks(code: code)
             async let trendsTask = sectorService.fetchTrends(code: code, name: sectorName)
             let (s, st, td) = try await (sectorTask, stocksTask, trendsTask)
-            self.sector = s
+            self.sector = alignSectorName(s)
             self.sectorStocks = st
             self.trendData = td
         } catch {

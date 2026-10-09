@@ -503,33 +503,121 @@ struct SettingsCard<Content: View>: View {
 /// `display` 由调用方解析（同一个值在不同语境有不同文案，如「代码」与
 /// 「名称 (代码)」），组件只管形态。`fillsWidth` 给面板头部的板块切换：
 /// 触发器撑满整行、值落在行首；卡片行内默认贴内容。
-struct DmMenuPicker<Value: Hashable, Options: View>: View {
+/// 菜单选择器：自绘触发器 + `NSMenu.popUp` 弹层。
+///
+/// 不用 SwiftUI `Menu { Picker }`：面板是 `.nonactivatingPanel`，SwiftUI Menu
+/// 在里面弹不出来（点击无响应，2026-10-09 用户实测）；系统 `.pickerStyle(.menu)`
+/// 能弹（底层 NSPopUpButton 不依赖应用激活）但 bezel 去不掉、会叠在卡片上。
+/// 直接弹 NSMenu 两头都占：勾选态与键盘导航是系统菜单的，触发器完全自绘。
+/// 选项走数据（value + label）不走 ViewBuilder —— 菜单项要逐个建 NSMenuItem。
+struct DmMenuPicker<Value: Hashable>: View {
     @Binding var selection: Value
-    let display: String
-    @ViewBuilder var options: () -> Options
-    var fillsWidth = false
+    let items: [Item]
+    /// bare = 行内裸触发（设置行 / 弹窗行）；field = 字段壳（面板头部这类悬空位置）
+    var style: Style = .bare
+
+    enum Style { case bare, field }
+
+    struct Item {
+        let value: Value
+        let label: String
+    }
 
     @State private var isHovered = false
+    @State private var coordinator = Coordinator()
+    @State private var triggerFrame: CGRect = .zero
+
+    /// 选项里找不到当前值时退回值的字面量（配置刚改、选项未跟上等边角）
+    private var display: String {
+        items.first(where: { $0.value == selection })?.label ?? String(describing: selection)
+    }
 
     var body: some View {
-        Menu {
-            Picker("", selection: $selection) { options() }
+        Group {
+            switch style {
+            case .bare:
+                trigger
+            case .field:
+                trigger
+                    .padding(.horizontal, DmSpace.s12)
+                    .frame(height: DmControl.h32)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: DmRadius.r8).fill(Color.dmPanel2)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: DmRadius.r8)
+                            .strokeBorder(Color.dmLine2, lineWidth: DmLine.base)
+                    )
+            }
+        }
+        .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(key: PickerFrameKey.self, value: geo.frame(in: .global))
+            }
+        )
+        .onPreferenceChange(PickerFrameKey.self) { triggerFrame = $0 }
+    }
+
+    private var trigger: some View {
+        Button {
+            openMenu()
         } label: {
             HStack(spacing: DmSpace.s6) {
                 Text(display)
                     .font(.system(size: DmText.t13))
                     .foregroundColor(isHovered ? Color.dmInk : Color.dmInk2)
                     .lineLimit(1)
+                if style == .field { Spacer(minLength: 0) }
                 LucideIcon("chevrons-up-down", size: DmIcon.i12)
                     .foregroundColor(isHovered ? Color.dmInk2 : Color.dmInk3)
-                if fillsWidth { Spacer(minLength: 0) }
             }
         }
         .buttonStyle(.plain)
-        .menuIndicator(.hidden)
-        .onHover { isHovered = $0 }
-        .fixedSize(horizontal: !fillsWidth, vertical: true)
     }
+
+    private func openMenu() {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        var currentItem: NSMenuItem?
+        for item in items {
+            let mi = NSMenuItem(
+                title: item.label,
+                action: #selector(Coordinator.pick(_:)),
+                keyEquivalent: ""
+            )
+            mi.target = coordinator
+            mi.representedObject = item.value
+            mi.state = item.value == selection ? .on : .off
+            if item.value == selection { currentItem = mi }
+            menu.addItem(mi)
+        }
+        coordinator.onSelect = { value in
+            if let value = value as? Value { selection = value }
+        }
+        // in: nil 时 at 是屏幕坐标 —— 贴着触发器下缘展开
+        menu.popUp(
+            positioning: currentItem,
+            at: NSPoint(x: triggerFrame.minX, y: triggerFrame.maxY + 2),
+            in: nil
+        )
+    }
+
+    /// NSMenu 的 action 落点：SwiftUI struct 当不了 target，泛型类又挂不了
+    /// @objc 方法，用非泛型小类 + Any 中转。
+    final class Coordinator: NSObject {
+        var onSelect: ((Any) -> Void)?
+        @objc func pick(_ sender: NSMenuItem) {
+            if let value = sender.representedObject { onSelect?(value) }
+        }
+    }
+}
+
+private struct PickerFrameKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) { value = nextValue() }
 }
 
 /// 统一行情头部：标签 + 状态 → 大价格 → 涨跌 + 次要信息 + 行情时间

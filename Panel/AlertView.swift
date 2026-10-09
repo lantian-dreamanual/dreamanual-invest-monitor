@@ -329,22 +329,10 @@ struct AddAlertSheet: View {
     /// 复位价：留空 = 交回 0.5% 兜底迟滞带（与源系统口径一致）
     @State private var resetThreshold = ""
 
-    /// 选择标的触发器上的当前值文案（DmMenuPicker 不带系统 bezel，值由调用方解析）
-    private var targetDisplay: String {
-        if let s = controller.configStore.config.sectors.first(where: { $0.code == targetCode }) {
-            return "\(s.name) (\(s.code))"
-        }
-        if let f = controller.configStore.config.funds.first(where: { $0.code == targetCode }) {
-            return "\(f.name) (\(f.code))"
-        }
-        return "黄金(CNY/g)"
-    }
-
     var body: some View {
         DmModalCard(
             title: "添加预警规则",
-            content: {
-            // 标的类型
+            content: {            // 标的类型
             FormSection("标的类型") {
                 SegmentedTabs(
                     items: [AlertTargetType.goldCNY, AlertTargetType.sector, AlertTargetType.fund],
@@ -375,20 +363,18 @@ struct AddAlertSheet: View {
             if targetType == .sector || targetType == .fund {
                 FormSection("选择标的") {
                     if targetType == .sector {
-                        DmMenuPicker(selection: $targetCode, display: targetDisplay) {
-                            ForEach(controller.configStore.config.sectors, id: \.code) { s in
-                                Text("\(s.name) (\(s.code))").tag(s.code)
-                            }
-                        }
+                        DmMenuPicker(
+                            selection: $targetCode,
+                            items: controller.configStore.config.sectors.map { .init(value: $0.code, label: "\($0.name) (\($0.code))") }
+                        )
                         .onChange(of: targetCode) { newCode in
                             targetName = controller.configStore.config.sectors.first(where: { $0.code == newCode })?.name ?? ""
                         }
                     } else {
-                        DmMenuPicker(selection: $targetCode, display: targetDisplay) {
-                            ForEach(controller.configStore.config.funds, id: \.code) { f in
-                                Text("\(f.name) (\(f.code))").tag(f.code)
-                            }
-                        }
+                        DmMenuPicker(
+                            selection: $targetCode,
+                            items: controller.configStore.config.funds.map { .init(value: $0.code, label: "\($0.name) (\($0.code))") }
+                        )
                         .onChange(of: targetCode) { newCode in
                             targetName = controller.configStore.config.funds.first(where: { $0.code == newCode })?.name ?? ""
                         }
@@ -556,17 +542,6 @@ struct EditAlertSheet: View {
         _resetThreshold = State(initialValue: AlertResetInput.editText(rule.resetThreshold))
     }
 
-    /// 选择标的触发器上的当前值文案（DmMenuPicker 不带系统 bezel，值由调用方解析）
-    private var targetDisplay: String {
-        if let s = controller.configStore.config.sectors.first(where: { $0.code == targetCode }) {
-            return "\(s.name) (\(s.code))"
-        }
-        if let f = controller.configStore.config.funds.first(where: { $0.code == targetCode }) {
-            return "\(f.name) (\(f.code))"
-        }
-        return "黄金(CNY/g)"
-    }
-
     var body: some View {
         DmModalCard(
             title: "编辑预警规则",
@@ -603,20 +578,18 @@ struct EditAlertSheet: View {
             if targetType == .sector || targetType == .fund {
                 FormSection("选择标的") {
                     if targetType == .sector {
-                        DmMenuPicker(selection: $targetCode, display: targetDisplay) {
-                            ForEach(controller.configStore.config.sectors, id: \.code) { s in
-                                Text("\(s.name) (\(s.code))").tag(s.code)
-                            }
-                        }
+                        DmMenuPicker(
+                            selection: $targetCode,
+                            items: controller.configStore.config.sectors.map { .init(value: $0.code, label: "\($0.name) (\($0.code))") }
+                        )
                         .onChange(of: targetCode) { newCode in
                             targetName = controller.configStore.config.sectors.first(where: { $0.code == newCode })?.name ?? ""
                         }
                     } else {
-                        DmMenuPicker(selection: $targetCode, display: targetDisplay) {
-                            ForEach(controller.configStore.config.funds, id: \.code) { f in
-                                Text("\(f.name) (\(f.code))").tag(f.code)
-                            }
-                        }
+                        DmMenuPicker(
+                            selection: $targetCode,
+                            items: controller.configStore.config.funds.map { .init(value: $0.code, label: "\($0.name) (\($0.code))") }
+                        )
                         .onChange(of: targetCode) { newCode in
                             targetName = controller.configStore.config.funds.first(where: { $0.code == newCode })?.name ?? ""
                         }
