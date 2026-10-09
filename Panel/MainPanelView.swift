@@ -162,16 +162,17 @@ struct MainPanelView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // 板块切换 Picker
+    // 板块切换 Picker（无底触发器，与设置页 / 弹窗里的选择器同一形态）
     private var sectorPicker: some View {
-        Picker(selection: $controller.currentSectorCode) {
+        DmMenuPicker(
+            selection: $controller.currentSectorCode,
+            display: controller.configStore.config.sectors.first(where: { $0.code == controller.currentSectorCode })?.name ?? controller.currentSectorCode,
+            fillsWidth: true
+        ) {
             ForEach(controller.configStore.config.sectors, id: \.code) { s in
                 Text(s.name).tag(s.code)
             }
-        } label: {
-            EmptyView()
         }
-        .pickerStyle(.menu)
         .onChange(of: controller.currentSectorCode) { newCode in
             // 方案C：切换板块只刷新当前板块相关数据，不再触发全量 refresh
             Task { await controller.refreshSector(code: newCode) }

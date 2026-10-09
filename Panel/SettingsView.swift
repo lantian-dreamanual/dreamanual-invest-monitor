@@ -27,6 +27,24 @@ struct SettingsView: View {
     @State private var showAddFund = false
     @State private var message: String?
 
+    /// 状态栏显示来源的绑定：nil（黄金）与板块代码统一成 String，供 DmMenuPicker 用。
+    private var statusBarSourceBinding: Binding<String> {
+        Binding(
+            get: { controller.configStore.config.statusBarSource ?? "gold" },
+            set: { newValue in
+                controller.configStore.config.statusBarSource = (newValue == "gold") ? nil : newValue
+                controller.updateStatusTitle()
+            }
+        )
+    }
+
+    /// 触发器上的当前值文案：来源是板块代码时反查板块名（反查不到兜底显原码）。
+    private var statusBarDisplay: String {
+        let source = controller.configStore.config.statusBarSource ?? "gold"
+        if source == "gold" { return "黄金(CNY/g)" }
+        return controller.configStore.config.sectors.first(where: { $0.code == source })?.name ?? source
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DmSpace.s24) {
@@ -153,20 +171,12 @@ struct SettingsView: View {
                                 Text("显示内容")
                                     .font(.system(size: DmText.t13))
                                 Spacer()
-                                Picker("", selection: Binding(
-                                    get: { controller.configStore.config.statusBarSource ?? "gold" },
-                                    set: { newValue in
-                                        controller.configStore.config.statusBarSource = (newValue == "gold") ? nil : newValue
-                                        controller.updateStatusTitle()
-                                    }
-                                )) {
+                                DmMenuPicker(selection: statusBarSourceBinding, display: statusBarDisplay) {
                                     Text("黄金(CNY/g)").tag("gold")
                                     ForEach(controller.configStore.config.sectors) { sector in
                                         Text(sector.name).tag(sector.code)
                                     }
                                 }
-                                .pickerStyle(.menu)
-                                .controlSize(.small)
                             }
                             .padding(.horizontal, DmSpace.s14)
                             .padding(.vertical, DmSpace.s8)

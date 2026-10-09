@@ -477,10 +477,12 @@ struct SettingsCard<Content: View>: View {
     }
 
     var body: some View {
-        // 内容先收进 spacing:0 的 VStack：content 若是多个平铺子视图（ViewBuilder 的
-        // TupleView），下面这组 modifier 会**逐个分发到每个子视图**上 —— 背景与描边
-        // 各画一遍，一张卡片被打散成 N 个独立小卡片，行间还会多出隐式间距。
-        VStack(spacing: 0) {
+        // 内容先收进 alignment:.leading、spacing:0 的 VStack：content 若是多个平铺
+        // 子视图（ViewBuilder 的 TupleView），下面这组 modifier 会**逐个分发到每个
+        // 子视图**上 —— 背景与描边各画一遍，一张卡片被打散成 N 个独立小卡片，行间
+        // 还会多出隐式间距；alignment 不给 leading 的话，说明文字这类贴内容宽的
+        // 块会被卡片居中（2026-10-09 视频下载分组卡同款问题先在这里犯过）。
+        VStack(alignment: .leading, spacing: 0) {
             content
         }
         .background(Color.dmPanel2)
@@ -489,6 +491,44 @@ struct SettingsCard<Content: View>: View {
             RoundedRectangle(cornerRadius: DmRadius.r12)
                 .stroke(Color.dmLine2, lineWidth: DmLine.hairline)
         )
+    }
+}
+
+/// 菜单选择器：触发器只有「当前值 + chevrons 图标」，不画自己的底。
+///
+/// 系统 `.pickerStyle(.menu)` 自带 bezel —— 叠在 SettingsCard / DmModalCard
+/// 上像两张卡摞放（2026-10-09 用户拍板去掉，与视频下载设置行的触发器同一形态）。
+/// 选项列表仍走系统菜单弹出，勾选态与键盘操作都在。
+///
+/// `display` 由调用方解析（同一个值在不同语境有不同文案，如「代码」与
+/// 「名称 (代码)」），组件只管形态。`fillsWidth` 给面板头部的板块切换：
+/// 触发器撑满整行、值落在行首；卡片行内默认贴内容。
+struct DmMenuPicker<Value: Hashable, Options: View>: View {
+    @Binding var selection: Value
+    let display: String
+    @ViewBuilder var options: () -> Options
+    var fillsWidth = false
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Menu {
+            Picker("", selection: $selection) { options() }
+        } label: {
+            HStack(spacing: DmSpace.s6) {
+                Text(display)
+                    .font(.system(size: DmText.t13))
+                    .foregroundColor(isHovered ? Color.dmInk : Color.dmInk2)
+                    .lineLimit(1)
+                LucideIcon("chevrons-up-down", size: DmIcon.i12)
+                    .foregroundColor(isHovered ? Color.dmInk2 : Color.dmInk3)
+                if fillsWidth { Spacer(minLength: 0) }
+            }
+        }
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .onHover { isHovered = $0 }
+        .fixedSize(horizontal: !fillsWidth, vertical: true)
     }
 }
 
