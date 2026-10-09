@@ -405,23 +405,35 @@ struct AddAlertSheet: View {
             // 方向 + 阈值 + 确认天数。三个组之间用等宽弹性空档（最小 s12）：
             // 原先只有方向后面一个 Spacer，方向→阈值一大段、阈值→确认天数 s10，
             // 一行里两种节奏。三件控件现已同为 38 档高（SegmentedTabs compact 钉档）。
-            HStack(alignment: .top, spacing: 0) {
-                FormSection("方向") {
-                    SegmentedTabs(
-                        items: [AlertDirection.above, AlertDirection.below],
-                        selection: $direction,
-                        label: { d in d == .above ? "≥ 涨到" : "≤ 跌到" },
-                        style: .compact
-                    )
-                    .frame(width: 148)
+            // 确认天数说明贴在行下方 s4 —— 与复位价的「字段→提示」间距同节奏
+            // （原先漂在提醒文案下面、吃的是 s12 段距，两处提示离各自字段不一样远）。
+            VStack(alignment: .leading, spacing: DmSpace.s4) {
+                HStack(alignment: .top, spacing: 0) {
+                    FormSection("方向") {
+                        SegmentedTabs(
+                            items: [AlertDirection.above, AlertDirection.below],
+                            selection: $direction,
+                            label: { d in d == .above ? "≥ 涨到" : "≤ 跌到" },
+                            style: .compact
+                        )
+                        .frame(width: 148)
+                    }
+                    Spacer(minLength: DmSpace.s12)
+                    FormSection("阈值") {
+                        FormTextField(placeholder: thresholdPlaceholder, text: $threshold, width: 84)
+                    }
+                    Spacer(minLength: DmSpace.s12)
+                    FormSection("确认天数") {
+                        FormTextField(placeholder: "1", text: $confirmDays, width: 64)
+                    }
                 }
-                Spacer(minLength: DmSpace.s12)
-                FormSection("阈值") {
-                    FormTextField(placeholder: thresholdPlaceholder, text: $threshold, width: 84)
-                }
-                Spacer(minLength: DmSpace.s12)
-                FormSection("确认天数") {
-                    FormTextField(placeholder: "1", text: $confirmDays, width: 64)
+                // 确认天数说明：只有这里能解释「连续几天才算数」这件事
+                HStack(spacing: DmSpace.s4) {
+                    LucideIcon("info", size: DmIcon.i10)
+                        .foregroundColor(Color.dmInk2)
+                    Text("确认天数：连续几个判定价日站在触发区内才提醒（1–10，默认 1）")
+                        .font(.system(size: DmText.t10))
+                        .foregroundColor(Color.dmInk2)
                 }
             }
 
@@ -439,18 +451,8 @@ struct AddAlertSheet: View {
                 }
             }
 
-            // 动作提示
-            FormSection("提醒文案（动作提示）") {
+            FormSection("提醒文案") {
                 FormTextField(placeholder: "第1档止盈 · 建议卖1/3", text: $label)
-            }
-
-            // 确认天数说明：只有这里能解释「连续几天才算数」这件事
-            HStack(spacing: DmSpace.s4) {
-                LucideIcon("info", size: DmIcon.i10)
-                    .foregroundColor(Color.dmInk2)
-                Text("确认天数：连续几个判定价日站在触发区内才提醒（1–10，默认 1）")
-                    .font(.system(size: DmText.t10))
-                    .foregroundColor(Color.dmInk2)
             }
 
             },
@@ -622,23 +624,35 @@ struct EditAlertSheet: View {
             // 方向 + 阈值 + 确认天数。三个组之间用等宽弹性空档（最小 s12）：
             // 原先只有方向后面一个 Spacer，方向→阈值一大段、阈值→确认天数 s10，
             // 一行里两种节奏。三件控件现已同为 38 档高（SegmentedTabs compact 钉档）。
-            HStack(alignment: .top, spacing: 0) {
-                FormSection("方向") {
-                    SegmentedTabs(
-                        items: [AlertDirection.above, AlertDirection.below],
-                        selection: $direction,
-                        label: { d in d == .above ? "≥ 涨到" : "≤ 跌到" },
-                        style: .compact
-                    )
-                    .frame(width: 148)
+            // 确认天数说明贴在行下方 s4 —— 与复位价的「字段→提示」间距同节奏
+            // （原先漂在提醒文案下面、吃的是 s12 段距，两处提示离各自字段不一样远）。
+            VStack(alignment: .leading, spacing: DmSpace.s4) {
+                HStack(alignment: .top, spacing: 0) {
+                    FormSection("方向") {
+                        SegmentedTabs(
+                            items: [AlertDirection.above, AlertDirection.below],
+                            selection: $direction,
+                            label: { d in d == .above ? "≥ 涨到" : "≤ 跌到" },
+                            style: .compact
+                        )
+                        .frame(width: 148)
+                    }
+                    Spacer(minLength: DmSpace.s12)
+                    FormSection("阈值") {
+                        FormTextField(placeholder: thresholdPlaceholder, text: $threshold, width: 84)
+                    }
+                    Spacer(minLength: DmSpace.s12)
+                    FormSection("确认天数") {
+                        FormTextField(placeholder: "1", text: $confirmDays, width: 64)
+                    }
                 }
-                Spacer(minLength: DmSpace.s12)
-                FormSection("阈值") {
-                    FormTextField(placeholder: thresholdPlaceholder, text: $threshold, width: 84)
-                }
-                Spacer(minLength: DmSpace.s12)
-                FormSection("确认天数") {
-                    FormTextField(placeholder: "1", text: $confirmDays, width: 64)
+                // 确认天数说明：只有这里能解释「连续几天才算数」这件事
+                HStack(spacing: DmSpace.s4) {
+                    LucideIcon("info", size: DmIcon.i10)
+                        .foregroundColor(Color.dmInk2)
+                    Text("确认天数：连续几个判定价日站在触发区内才提醒（1–10，默认 1）")
+                        .font(.system(size: DmText.t10))
+                        .foregroundColor(Color.dmInk2)
                 }
             }
 
@@ -656,17 +670,8 @@ struct EditAlertSheet: View {
                 }
             }
 
-            // 动作提示
-            FormSection("提醒文案（动作提示）") {
+            FormSection("提醒文案") {
                 FormTextField(placeholder: "第1档止盈 · 建议卖1/3", text: $label)
-            }
-
-            HStack(spacing: DmSpace.s4) {
-                LucideIcon("info", size: DmIcon.i10)
-                    .foregroundColor(Color.dmInk2)
-                Text("确认天数：连续几个判定价日站在触发区内才提醒（1–10，默认 1）")
-                    .font(.system(size: DmText.t10))
-                    .foregroundColor(Color.dmInk2)
             }
 
             },
