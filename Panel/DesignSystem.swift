@@ -62,23 +62,21 @@ struct StatusDescriptor: Equatable {
         }
     }
 
-    /// 徽章的字色取各族的**亮档**（`-ink` / `accent-2`），因为它是压在自己那族的
-    /// 深色底上（见下面的 `background`）；族基色只压中性底 —— 族色压本族 soft 底
-    /// 到不了 4.5:1（red-500 压 red-950 只有 4.29:1，四个族都一样）。见设计系统第三节。
+    /// 状态徽章字色（2026-10-09 徽章改版）：
+    /// live 用强调亮档（yellow-400），warn 用族加深档，quiet 用中性次级。
+    /// 族 300（ink）压徽章底读感发虚，用户反馈加深一档后全族换 ink-strong。
     var color: Color {
         switch tone {
         case .live: return .dmAccent2
-        case .warn: return .dmWarnInk
-        case .quiet: return .dmInk3
+        case .warn: return .dmWarnInkStrong
+        case .quiet: return .dmInk2
         }
     }
 
+    /// 徽章底统一 panel-2，与卡片同底 —— 嵌在卡片里时靠 line-2 发丝描边
+    /// 分层（与 FormCard「panel-2 底 + line-2 发丝」同一配方）。
     var background: Color {
-        switch tone {
-        case .live: return .dmAccentSoft
-        case .warn: return .dmWarnSoft
-        case .quiet: return .dmPanel
-        }
+        .dmPanel2
     }
 }
 
@@ -92,9 +90,14 @@ struct MarketStatusBadge: View {
             .font(.system(size: DmText.t11, weight: .medium))
             .padding(.horizontal, DmSpace.s6)
             .padding(.vertical, DmSpace.s2)
-            .background(d.background)
+            .background(
+                RoundedRectangle(cornerRadius: DmRadius.r6).fill(d.background)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DmRadius.r6)
+                    .strokeBorder(Color.dmLine2, lineWidth: DmLine.hairline)
+            )
             .foregroundColor(d.color)
-            .cornerRadius(DmRadius.r6)
     }
 }
 
