@@ -111,8 +111,8 @@ struct SegmentedTabs<T: Hashable>: View {
     var style: Style = .default
 
     enum Style {
-        case `default`      // 主 Tab：通栏等宽
-        case compact        // 表单内：跟随内容宽度
+        case `default`      // 主 Tab：通栏等宽，控件档 28
+        case compact        // 表单内：跟随内容宽度，与同排输入框对齐取表单档 38
     }
 
     var body: some View {
@@ -128,8 +128,7 @@ struct SegmentedTabs<T: Hashable>: View {
                         .foregroundColor(selected ? Color.dmAccent2 : Color.dmInk2)
                         .lineLimit(1)
                         .padding(.horizontal, style == .default ? DmSpace.s16 : DmSpace.s12)
-                        .padding(.vertical, DmSpace.s6)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(
                             RoundedRectangle(cornerRadius: DmRadius.r6)
                                 .fill(Color.dmAccentSoft)
@@ -140,6 +139,9 @@ struct SegmentedTabs<T: Hashable>: View {
                 .buttonStyle(.plain)
             }
         }
+        // 行高钉控件档（2026-10-09）：原先纵向 padding 6 撑出 ~28，随字体度量漂，
+        // 且预警弹窗里与 38 的输入框同排差出一截。default 28 / compact 38。
+        .frame(height: style == .default ? DmControl.h28 : DmControl.h38)
         .background(
             RoundedRectangle(cornerRadius: DmRadius.r6)
                 .fill(Color.dmPanel)
@@ -361,6 +363,9 @@ struct FormLabel: View {
         Text(text)
             .font(.system(size: DmText.t12, weight: .medium))
             .foregroundColor(Color.dmInk2)
+            // 区块标签是单行的（「阈值」「确认天数」），挤了也宁可溢出不折行 ——
+            // 折成两行的标签在表单里像出了错。
+            .lineLimit(1)
     }
 }
 
@@ -371,8 +376,9 @@ struct FormLabel: View {
 /// 居中、两边要留呼吸；输入框的文字起点就是内边距，再给 16 会让文字离边太远。
 ///
 /// 底色 `dmPanel3`（高亮行档，本 app 的输入框嵌在 `panel-2` 卡片里，相邻一档才分得出），
-/// 边框 `dmLine2` 1px 常态 / `dmAccentLine` 1px 聚焦（设计系统第八节）。
-/// 原先常态 0.5px、聚焦 `dmAccent2` 1.5px，与视频下载、密码管理两个端都不同。
+/// 边框 `dmLine2` 1px 常态 / `dmAccent2` 1px 聚焦（设计系统第八节；2026-10-09 从
+/// `dmAccentLine` 改浅档 —— 800 深档压 panel-3 底辨识度不够，与 vault `.inp:focus`、
+/// 视频下载 `formField()` 同一取法。更早一版聚焦是 `dmAccent2` 1.5px，宽度不对，档位是对的）。
 struct FormTextField: View {
     let placeholder: String
     @Binding var text: String
@@ -386,16 +392,21 @@ struct FormTextField: View {
             .font(.system(size: DmText.t13))
             .focused($isFocused)
             .padding(.horizontal, DmSpace.s12)
-            .background(Color.dmPanel3)
+            // 高度先钉、底与描边后包：反过来的话 background/overlay 只裹住 ~16pt 的
+            // 裸输入框，frame 钉的 38 成了透明命中区 —— 2026-10-09 出图实测抓到，
+            // 视觉上就是用户看到的「胶囊小字段」。
+            .frame(height: DmControl.h38)
+            .background(
+                RoundedRectangle(cornerRadius: DmRadius.r8)
+                    .fill(Color.dmPanel3)
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: DmRadius.r8)
                     .strokeBorder(
-                        isFocused ? Color.dmAccentLine : Color.dmLine2,
+                        isFocused ? Color.dmAccent2 : Color.dmLine2,
                         lineWidth: DmLine.base
                     )
             )
-            .cornerRadius(DmRadius.r8)
-            .frame(height: DmControl.h38)
             .frame(width: width)
     }
 }

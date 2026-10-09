@@ -406,8 +406,10 @@ struct AddAlertSheet: View {
                 }
             }
 
-            // 方向 + 阈值 + 确认天数
-            HStack(alignment: .top, spacing: DmSpace.s10) {
+            // 方向 + 阈值 + 确认天数。三个组之间用等宽弹性空档（最小 s12）：
+            // 原先只有方向后面一个 Spacer，方向→阈值一大段、阈值→确认天数 s10，
+            // 一行里两种节奏。三件控件现已同为 38 档高（SegmentedTabs compact 钉档）。
+            HStack(alignment: .top, spacing: 0) {
                 FormSection("方向") {
                     SegmentedTabs(
                         items: [AlertDirection.above, AlertDirection.below],
@@ -417,19 +419,20 @@ struct AddAlertSheet: View {
                     )
                     .frame(width: 148)
                 }
-                Spacer(minLength: 0)
+                Spacer(minLength: DmSpace.s12)
                 FormSection("阈值") {
                     FormTextField(placeholder: thresholdPlaceholder, text: $threshold, width: 84)
                 }
+                Spacer(minLength: DmSpace.s12)
                 FormSection("确认天数") {
-                    FormTextField(placeholder: "1", text: $confirmDays, width: 52)
+                    FormTextField(placeholder: "1", text: $confirmDays, width: 64)
                 }
             }
 
             // 复位价：可选。留空 = 交回 0.5% 兜底迟滞带
             FormSection("复位价") {
                 VStack(alignment: .leading, spacing: DmSpace.s4) {
-                    FormTextField(placeholder: "可选", text: $resetThreshold, width: 84)
+                    FormTextField(placeholder: "可选", text: $resetThreshold)
                     HStack(spacing: DmSpace.s4) {
                         LucideIcon(resetError == nil ? "info" : "warning", size: DmIcon.i10)
                             .foregroundColor(resetError == nil ? Color.dmInk2 : Color.dmDanger)
@@ -627,8 +630,10 @@ struct EditAlertSheet: View {
                 }
             }
 
-            // 方向 + 阈值 + 确认天数
-            HStack(alignment: .top, spacing: DmSpace.s10) {
+            // 方向 + 阈值 + 确认天数。三个组之间用等宽弹性空档（最小 s12）：
+            // 原先只有方向后面一个 Spacer，方向→阈值一大段、阈值→确认天数 s10，
+            // 一行里两种节奏。三件控件现已同为 38 档高（SegmentedTabs compact 钉档）。
+            HStack(alignment: .top, spacing: 0) {
                 FormSection("方向") {
                     SegmentedTabs(
                         items: [AlertDirection.above, AlertDirection.below],
@@ -638,19 +643,20 @@ struct EditAlertSheet: View {
                     )
                     .frame(width: 148)
                 }
-                Spacer(minLength: 0)
+                Spacer(minLength: DmSpace.s12)
                 FormSection("阈值") {
                     FormTextField(placeholder: thresholdPlaceholder, text: $threshold, width: 84)
                 }
+                Spacer(minLength: DmSpace.s12)
                 FormSection("确认天数") {
-                    FormTextField(placeholder: "1", text: $confirmDays, width: 52)
+                    FormTextField(placeholder: "1", text: $confirmDays, width: 64)
                 }
             }
 
             // 复位价：可选。留空 = 交回 0.5% 兜底迟滞带
             FormSection("复位价") {
                 VStack(alignment: .leading, spacing: DmSpace.s4) {
-                    FormTextField(placeholder: "可选", text: $resetThreshold, width: 84)
+                    FormTextField(placeholder: "可选", text: $resetThreshold)
                     HStack(spacing: DmSpace.s4) {
                         LucideIcon(resetError == nil ? "info" : "warning", size: DmIcon.i10)
                             .foregroundColor(resetError == nil ? Color.dmInk2 : Color.dmDanger)
