@@ -636,6 +636,9 @@ struct DmDropdownOverlay: View {
                 Color.clear
                     .contentShape(Rectangle())
                     .onTapGesture { model.dismiss() }
+                    // 遮罩只在菜单打开时可命中：始终可命中的透明层会把
+                    // 整个面板的点击吃掉（2026-10-09 用户实测「面板全点不动」）
+                    .allowsHitTesting(model.current != nil)
                 if let req = model.current {
                     menuCard(req, container: geo.size, rootFrame: rootFrame)
                 }
