@@ -217,18 +217,22 @@ struct IconButton: View {
     let action: () -> Void
 
     @State private var isHovered = false
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         Button(action: action) {
             LucideIcon(iconName, size: DmIcon.i12)
-                .foregroundColor(isHovered ? Color.dmInk : Color.dmInk2)
+                .foregroundColor(isHovered && isEnabled ? Color.dmInk : Color.dmInk2)
                 .frame(width: DmControl.h28, height: DmControl.h28)
                 .background(
                     RoundedRectangle(cornerRadius: DmRadius.r6)
-                        .fill(isHovered ? Color.dmPanel3 : Color.clear)
+                        .fill(isHovered && isEnabled ? Color.dmPanel3 : Color.clear)
                 )
         }
         .buttonStyle(.plain)
+        // 禁用原样整体压暗 0.5（2026-10-09 按钮禁用定版）。当前没有禁用场景，
+        // 挂在这里是防将来 `.disabled()` 时静默不变暗。
+        .opacity(isEnabled ? 1 : 0.5)
         .onHover { isHovered = $0 }
     }
 }
@@ -265,7 +269,9 @@ struct GoldToggleStyle: ToggleStyle {
 ///
 /// `--accent-fill` 管承载元素的实心块底；悬停提亮到 fill-2（`dmAccentFill2`）——
 /// **invest 是唯一深字方案**：fill 与 accent 同 500 档、hover 反提 400 档，与白字方案
-/// 「hover 加深」相反。禁用态退中性：panel3 底 + ink3 字，悬停不再变色。
+/// 「hover 加深」相反。禁用态**原样整体压暗到 0.5**（2026-10-09 定版，与密码管理
+/// `.btn:disabled` 同一口径）：旧口径「换 panel-3 灰底」会让禁用的主按钮与一排
+/// 次级按钮同灰、主次消失，压暗后它还是强调色但明显暗掉。悬停冻结。
 ///
 /// 「下载更新」「添加」「保存」此前走系统 `.borderedProminent` + `.controlSize(.small)`，
 /// 高度与描边都不受令牌管；现在四处统一走它。
@@ -277,26 +283,33 @@ struct PrimaryButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(size: DmText.t13, weight: .medium))
             .lineLimit(1)
-            .foregroundColor(isEnabled ? Color.dmOnAccent : Color.dmInk3)
+            .foregroundColor(Color.dmOnAccent)
             .padding(.horizontal, DmSpace.s16)
             .frame(height: DmControl.h38)
             .background(
                 RoundedRectangle(cornerRadius: DmRadius.r8)
                     .fill(fillColor)
             )
-            .opacity(configuration.isPressed && isEnabled ? 0.85 : 1)
+            .opacity(opacity(configuration))
             .onHover { isHovered = $0 }
     }
 
     private var fillColor: Color {
-        if !isEnabled { return .dmPanel3 }
-        return isHovered ? .dmAccentFill2 : .dmAccentFill
+        if isEnabled && isHovered { return .dmAccentFill2 }
+        return .dmAccentFill
+    }
+
+    /// 禁用 0.5 整体压暗；按下 0.85；两者不叠加。
+    private func opacity(_ configuration: Configuration) -> Double {
+        if !isEnabled { return 0.5 }
+        return configuration.isPressed ? 0.85 : 1
     }
 }
 
 /// 次级按钮：panel2 底 + ink2 字，悬停提到 panel3 底 + ink 字
 /// （与视频下载手写行的悬停态同一套表达：panel3 底 + ink 字）。
 /// 尺寸与主按钮同取「表单规格」，只有配色不同 —— 弹窗里的「取消」用它。
+/// 禁用态原样整体压暗 0.5（2026-10-09 定版，与密码管理同一口径）。
 struct SecondaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     @State private var isHovered = false
@@ -314,15 +327,21 @@ struct SecondaryButtonStyle: ButtonStyle {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DmRadius.r8)
-                    .strokeBorder(isEnabled ? Color.dmLine : Color.dmLine2, lineWidth: DmLine.base)
+                    .strokeBorder(Color.dmLine, lineWidth: DmLine.base)
             )
-            .opacity(configuration.isPressed && isEnabled ? 0.85 : 1)
+            .opacity(opacity(configuration))
             .onHover { isHovered = $0 }
     }
 
     private var foreground: Color {
-        if !isEnabled { return .dmInk3 }
-        return isHovered ? Color.dmInk : Color.dmInk2
+        if isEnabled && isHovered { return Color.dmInk }
+        return Color.dmInk2
+    }
+
+    /// 禁用 0.5 整体压暗；按下 0.85；两者不叠加。
+    private func opacity(_ configuration: Configuration) -> Double {
+        if !isEnabled { return 0.5 }
+        return configuration.isPressed ? 0.85 : 1
     }
 }
 
@@ -348,15 +367,21 @@ struct CompactButtonStyle: ButtonStyle {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DmRadius.r6)
-                    .strokeBorder(isEnabled ? Color.dmLine : Color.dmLine2, lineWidth: DmLine.base)
+                    .strokeBorder(Color.dmLine, lineWidth: DmLine.base)
             )
-            .opacity(configuration.isPressed && isEnabled ? 0.85 : 1)
+            .opacity(opacity(configuration))
             .onHover { isHovered = $0 }
     }
 
     private var foreground: Color {
-        if isEnabled { return isHovered ? Color.dmInk : Color.dmInk2 }
-        return .dmInk3
+        if isEnabled && isHovered { return Color.dmInk }
+        return Color.dmInk2
+    }
+
+    /// 禁用 0.5 整体压暗；按下 0.85；两者不叠加。
+    private func opacity(_ configuration: Configuration) -> Double {
+        if !isEnabled { return 0.5 }
+        return configuration.isPressed ? 0.85 : 1
     }
 }
 
