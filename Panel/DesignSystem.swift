@@ -101,7 +101,10 @@ struct MarketStatusBadge: View {
 // ============ 设计系统：分段控件 ============
 
 /// 自定义分段控件：对齐 macOS Tahoe 系统设置样式
-/// 选中态 = `dmAccentSoft` 深底 + `dmAccent2` 亮字（与密码管理、视频下载同一套表达）；
+/// 选中态 = `dmAccentFill` 实心底 + `dmOnAccent` 深字（2026-10-09 从
+/// `dmAccentSoft` 深底 + `dmAccent2` 亮字改来 —— 用户反馈「主色深档底+主色
+/// 浅档字很难看」；本 app 的主按钮本就是黄底深字（四端唯一深字方案），
+/// 分段控件对齐按钮即「主色档底+黑字」的旧观感，同一强调色只有一套语义）；
 /// 未选中 = 透明 + 次要色文字
 /// 解决 nonactivatingPanel 下系统分段控件选中态变灰的问题
 struct SegmentedTabs<T: Hashable>: View {
@@ -125,13 +128,13 @@ struct SegmentedTabs<T: Hashable>: View {
                 } label: {
                     Text(label(item))
                         .font(.system(size: DmText.t12, weight: selected ? .medium : .regular))
-                        .foregroundColor(selected ? Color.dmAccent2 : Color.dmInk2)
+                        .foregroundColor(selected ? Color.dmOnAccent : Color.dmInk2)
                         .lineLimit(1)
                         .padding(.horizontal, style == .default ? DmSpace.s16 : DmSpace.s12)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(
                             RoundedRectangle(cornerRadius: DmRadius.r6)
-                                .fill(Color.dmAccentSoft)
+                                .fill(Color.dmAccentFill)
                                 .opacity(selected ? 1 : 0)
                         )
                         .contentShape(Rectangle())
@@ -142,9 +145,11 @@ struct SegmentedTabs<T: Hashable>: View {
         // 行高钉控件档（2026-10-09）：原先纵向 padding 6 撑出 ~28，随字体度量漂，
         // 且预警弹窗里与 38 的输入框同排差出一截。default 28 / compact 38。
         .frame(height: style == .default ? DmControl.h28 : DmControl.h38)
+        // 容器底 panel-2：与输入框同一「所在面相邻一档」取法（弹窗卡片是 panel，
+        // 容器原先取 panel 同色隐形，只剩描边；2026-10-09 随输入框改档一起提）。
         .background(
             RoundedRectangle(cornerRadius: DmRadius.r6)
-                .fill(Color.dmPanel)
+                .fill(Color.dmPanel2)
         )
         .overlay(
             RoundedRectangle(cornerRadius: DmRadius.r6)
@@ -375,9 +380,11 @@ struct FormLabel: View {
 /// 的 `formField()`、密码管理的 `.inp` 同档 —— 横向内边距比按钮小一档：按钮的标签
 /// 居中、两边要留呼吸；输入框的文字起点就是内边距，再给 16 会让文字离边太远。
 ///
-/// 底色 `dmPanel3`（高亮行档，本 app 的输入框嵌在 `panel-2` 卡片里，相邻一档才分得出），
-/// 边框 `dmLine2` 1px 常态 / `dmAccent2` 1px 聚焦（设计系统第八节；2026-10-09 从
-/// `dmAccentLine` 改浅档 —— 800 深档压 panel-3 底辨识度不够，与 vault `.inp:focus`、
+/// 底色 `dmPanel2`（按「输入框取所在面相邻一档」：2026-10-09 弹窗改自绘后卡片是
+/// `panel`，相邻一档即 panel-2 —— 与密码管理主区输入框（vault `.inp`）同款。
+/// 早年嵌在 `panel-2` 卡片里时取的是 panel-3，随宿主改档）。边框 `dmLine2` 1px
+/// 常态 / `dmAccent2` 1px 聚焦（设计系统第八节；2026-10-09 从
+/// `dmAccentLine` 改浅档 —— 800 深档压深底辨识度不够，与 vault `.inp:focus`、
 /// 视频下载 `formField()` 同一取法。更早一版聚焦是 `dmAccent2` 1.5px，宽度不对，档位是对的）。
 struct FormTextField: View {
     let placeholder: String
@@ -398,7 +405,7 @@ struct FormTextField: View {
             .frame(height: DmControl.h38)
             .background(
                 RoundedRectangle(cornerRadius: DmRadius.r8)
-                    .fill(Color.dmPanel3)
+                    .fill(Color.dmPanel2)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DmRadius.r8)
