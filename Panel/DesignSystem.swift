@@ -494,22 +494,55 @@ struct SettingsCard<Content: View>: View {
     }
 }
 
-/// 菜单选择器：触发器只有「当前值 + chevrons 图标」，不画自己的底。
+/// 自绘下拉菜单模型：一份打开的浮层（同一时刻至多一份）。
+///
+/// 为什么自绘：面板是 `.nonactivatingPanel`，SwiftUI `Menu`、`NSMenu.popUp`、
+/// `NSPopUpButton`（performClick）三条路实测都弹不出来（2026-10-09 离屏 +
+/// 真机三重证实）。浮层挂在面板根部，与 `DmModal` 同一挂法 —— 面板里
+/// SwiftUI 按钮与手势本来就可用，这条路是确定的。
+///
+/// 视频下载虽是普通窗口（系统菜单能弹），两端保持同一实现，见那边同名组件。
+@MainActor
+final class DropdownModel: ObservableObject {
+    struct Request {
+        /// 触发器在屏幕坐标里的 frame（SwiftUI `.global`）
+        let anchor: CGRect
+        /// 菜单卡不窄于触发器
+        let minWidth: CGFloat
+        let labels: [String]
+        let selectedIndex: Int?
+        /// 选中回调（按下标）
+        let pick: (Int) -> Void
+    }
+
+    @Published var current: Request?
+
+    func toggle(
+        anchor: CGRect, minWidth: CGFloat,
+        labels: [String], selectedIndex: Int?,
+        pick: @escaping (Int) -> Void
+    ) {
+        if let cur = current, cur.anchor == anchor {
+            current = nil
+            return
+        }
+        current = Request(
+            anchor: anchor, minWidth: minWidth,
+            labels: labels, selectedIndex: selectedIndex, pick: pick
+        )
+    }
+
+    func dismiss() {
+        current = nil
+    }
+}
+
+/// 菜单选择器：触发器只有「当前值 + chevrons 图标」，不画自己的底
+/// （field 样式套字段壳，用于面板头部这类悬空位置）。
 ///
 /// 系统 `.pickerStyle(.menu)` 自带 bezel —— 叠在 SettingsCard / DmModalCard
-/// 上像两张卡摞放（2026-10-09 用户拍板去掉，与视频下载设置行的触发器同一形态）。
-/// 选项列表仍走系统菜单弹出，勾选态与键盘操作都在。
-///
-/// `display` 由调用方解析（同一个值在不同语境有不同文案，如「代码」与
-/// 「名称 (代码)」），组件只管形态。`fillsWidth` 给面板头部的板块切换：
-/// 触发器撑满整行、值落在行首；卡片行内默认贴内容。
-/// 菜单选择器：自绘触发器 + `NSMenu.popUp` 弹层。
-///
-/// 不用 SwiftUI `Menu { Picker }`：面板是 `.nonactivatingPanel`，SwiftUI Menu
-/// 在里面弹不出来（点击无响应，2026-10-09 用户实测）；系统 `.pickerStyle(.menu)`
-/// 能弹（底层 NSPopUpButton 不依赖应用激活）但 bezel 去不掉、会叠在卡片上。
-/// 直接弹 NSMenu 两头都占：勾选态与键盘导航是系统菜单的，触发器完全自绘。
-/// 选项走数据（value + label）不走 ViewBuilder —— 菜单项要逐个建 NSMenuItem。
+/// 上像两张卡摞放（2026-10-09 用户拍板去掉）。点开的是自绘浮层
+///（`DropdownModel` + 根部 `DmDropdownOverlay`），选中有勾、悬停提亮。
 struct DmMenuPicker<Value: Hashable>: View {
     @Binding var selection: Value
     let items: [Item]
@@ -523,8 +556,8 @@ struct DmMenuPicker<Value: Hashable>: View {
         let label: String
     }
 
+    @EnvironmentObject private var dropdown: DropdownModel
     @State private var isHovered = false
-    @State private var coordinator = Coordinator()
     @State private var triggerFrame: CGRect = .zero
 
     /// 选项里找不到当前值时退回值的字面量（配置刚改、选项未跟上等边角）
@@ -553,6 +586,7 @@ struct DmMenuPicker<Value: Hashable>: View {
         }
         .contentShape(Rectangle())
         .onHover { isHovered = $0 }
+        .onTapGesture { open() }
         .background(
             GeometryReader { geo in
                 Color.clear.preference(key: PickerFrameKey.self, value: geo.frame(in: .global))
@@ -562,56 +596,124 @@ struct DmMenuPicker<Value: Hashable>: View {
     }
 
     private var trigger: some View {
-        Button {
-            openMenu()
-        } label: {
-            HStack(spacing: DmSpace.s6) {
-                Text(display)
-                    .font(.system(size: DmText.t13))
-                    .foregroundColor(isHovered ? Color.dmInk : Color.dmInk2)
-                    .lineLimit(1)
-                if style == .field { Spacer(minLength: 0) }
-                LucideIcon("chevrons-up-down", size: DmIcon.i12)
-                    .foregroundColor(isHovered ? Color.dmInk2 : Color.dmInk3)
-            }
+        HStack(spacing: DmSpace.s6) {
+            Text(display)
+                .font(.system(size: DmText.t13))
+                .foregroundColor(isHovered ? Color.dmInk : Color.dmInk2)
+                .lineLimit(1)
+            if style == .field { Spacer(minLength: 0) }
+            LucideIcon("chevrons-up-down", size: DmIcon.i12)
+                .foregroundColor(isHovered ? Color.dmInk2 : Color.dmInk3)
         }
-        .buttonStyle(.plain)
     }
 
-    private func openMenu() {
-        let menu = NSMenu()
-        menu.autoenablesItems = false
-        var currentItem: NSMenuItem?
-        for item in items {
-            let mi = NSMenuItem(
-                title: item.label,
-                action: #selector(Coordinator.pick(_:)),
-                keyEquivalent: ""
-            )
-            mi.target = coordinator
-            mi.representedObject = item.value
-            mi.state = item.value == selection ? .on : .off
-            if item.value == selection { currentItem = mi }
-            menu.addItem(mi)
-        }
-        coordinator.onSelect = { value in
-            if let value = value as? Value { selection = value }
-        }
-        // in: nil 时 at 是屏幕坐标 —— 贴着触发器下缘展开
-        menu.popUp(
-            positioning: currentItem,
-            at: NSPoint(x: triggerFrame.minX, y: triggerFrame.maxY + 2),
-            in: nil
+    private func open() {
+        dropdown.toggle(
+            anchor: triggerFrame,
+            minWidth: max(triggerFrame.width, 150),
+            labels: items.map(\.label),
+            selectedIndex: items.firstIndex(where: { $0.value == selection }),
+            pick: { idx in
+                if items.indices.contains(idx) {
+                    selection = items[idx].value
+                }
+            }
         )
     }
+}
 
-    /// NSMenu 的 action 落点：SwiftUI struct 当不了 target，泛型类又挂不了
-    /// @objc 方法，用非泛型小类 + Any 中转。
-    final class Coordinator: NSObject {
-        var onSelect: ((Any) -> Void)?
-        @objc func pick(_ sender: NSMenuItem) {
-            if let value = sender.representedObject { onSelect?(value) }
+/// 面板根部的下拉浮层：透明遮罩（点任意处关）+ 菜单卡（panel-2 底、
+/// line-2 发丝描边、r-10、modal 阴影；选中行勾勾 accent、悬停行 accent-soft 底）。
+/// 挂在视图树根部（`.overlay`），盖住模态在内的全部内容 —— 弹窗里的
+/// 选择标的也走它。
+struct DmDropdownOverlay: View {
+    @EnvironmentObject private var model: DropdownModel
+
+    var body: some View {
+        GeometryReader { geo in
+            let rootFrame = geo.frame(in: .global)
+            ZStack(alignment: .topLeading) {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture { model.dismiss() }
+                if let req = model.current {
+                    menuCard(req, container: geo.size, rootFrame: rootFrame)
+                }
+            }
         }
+    }
+
+    private func menuCard(_ req: DropdownModel.Request, container: CGSize, rootFrame: CGRect) -> some View {
+        let rowHeight = DmControl.h28
+        let cardHeight = CGFloat(req.labels.count) * rowHeight + DmSpace.s8
+        let cardWidth = max(req.minWidth, 150)
+        // 屏幕坐标 → 面板本地坐标
+        let anchor = req.anchor.offsetBy(dx: -rootFrame.minX, dy: -rootFrame.minY)
+        let belowY = anchor.maxY + DmSpace.s4
+        let spaceBelow = container.height - belowY - DmSpace.s8
+        // 下方放不下且上方更宽裕时朝上开
+        let openUp = spaceBelow < cardHeight && (anchor.minY - DmSpace.s4) > spaceBelow
+        let y = openUp ? anchor.minY - DmSpace.s4 - cardHeight : belowY
+        let x = min(max(anchor.minX, DmSpace.s8), container.width - cardWidth - DmSpace.s8)
+
+        return VStack(spacing: 0) {
+            ForEach(req.labels.indices, id: \.self) { idx in
+                DropdownRow(
+                    label: req.labels[idx],
+                    isSelected: req.selectedIndex == idx
+                ) {
+                    req.pick(idx)
+                    model.dismiss()
+                }
+            }
+        }
+        .frame(width: cardWidth, height: cardHeight, alignment: .top)
+        .background(
+            RoundedRectangle(cornerRadius: DmRadius.r10).fill(Color.dmPanel2)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DmRadius.r10)
+                .strokeBorder(Color.dmLine2, lineWidth: DmLine.hairline)
+        )
+        .dmShadowModal()
+        .offset(x: x, y: y)
+    }
+}
+
+/// 下拉菜单里的选项行：勾勾槽固定宽对齐，悬停 accent-soft 底 + accent-2 字
+/// （与选中四态同一配色约定）。
+private struct DropdownRow: View {
+    let label: String
+    let isSelected: Bool
+    let onPick: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        HStack(spacing: DmSpace.s8) {
+            Group {
+                if isSelected {
+                    LucideIcon("check", size: DmIcon.i12)
+                        .foregroundColor(Color.dmAccent)
+                } else {
+                    Color.clear
+                        .frame(width: DmIcon.i12, height: DmIcon.i12)
+                }
+            }
+            Text(label)
+                .font(.system(size: DmText.t13))
+                .foregroundColor(isSelected ? Color.dmInk : (isHovered ? Color.dmAccent2 : Color.dmInk2))
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, DmSpace.s10)
+        .frame(maxWidth: .infinity, minHeight: DmControl.h28)
+        .background(
+            isHovered ? Color.dmAccentSoft : Color.clear
+        )
+        .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
+        .onTapGesture { onPick() }
     }
 }
 

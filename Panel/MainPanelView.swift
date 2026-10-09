@@ -6,6 +6,8 @@ struct MainPanelView: View {
     @ObservedObject var controller: MenuBarController
     @State private var tab: Tab = .gold
     @State private var showSettings = false
+    // 自绘下拉的浮层模型：DmMenuPicker 在面板各处（头部/设置页/弹窗）都要用
+    @StateObject private var dropdown = DropdownModel()
 
     enum Tab: String, CaseIterable {
         case gold = "黄金"
@@ -71,6 +73,9 @@ struct MainPanelView: View {
                 )
             }
         }
+        // 自绘下拉浮层：挂在弹窗之后（盖住弹窗在内的全部内容），点遮罩关
+        .overlay { DmDropdownOverlay() }
+        .environmentObject(dropdown)
         .onReceive(controller.$pendingTab) { target in
             if let target = target {
                 // 通知点击触发的 Tab 切换：先退出设置页（如果在），再切 Tab
