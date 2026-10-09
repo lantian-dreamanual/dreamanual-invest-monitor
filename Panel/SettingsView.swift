@@ -25,7 +25,6 @@ struct SettingsView: View {
     @State private var lastSearchedFundCode = ""
     @State private var showAddSector = false
     @State private var showAddFund = false
-    @State private var showAddAlert = false
     @State private var message: String?
 
     var body: some View {
@@ -180,7 +179,7 @@ struct SettingsView: View {
                     sectionHeader(
                         title: "预警规则",
                         trailing: IconButton(iconName: "plus") {
-                            showAddAlert = true
+                            controller.showAddAlert = true
                         }
                         .help("添加规则")
                     )
@@ -347,9 +346,6 @@ struct SettingsView: View {
             .padding(DmSpace.s16)
         }
         .frame(maxWidth: .infinity)
-        .sheet(isPresented: $showAddAlert) {
-            AddAlertSheet(controller: controller, isPresented: $showAddAlert)
-        }
     }
 
     /// 区块标题行：标题在左、操作按钮在右（对齐 macOS 系统设置标题在卡片外的风格）

@@ -48,10 +48,8 @@ if (localText !== generatedText) {
 // ---- 2) 代码引用的令牌是否都有定义 ----
 // 生成物里的公开符号：常量（`static let dmBg`）与修饰器（`func dmShadowCard`）。
 // 只收 `static let` 的话，新加的阴影修饰器会被当成「引用了没定义的令牌」。
-const defined = new Set(
-  [...generatedText.matchAll(/(?:static let|func)\s+(dm\w+)/g)].map((m) => m[1]),
-);
-
+// app 层组件文件（DesignSystem.swift 等）自己定义的 `func dm*` / `static let dm*`
+// 也算定义（如模态修饰器 dmModal）—— 它们不是生成物符号，但同样受本门禁管辖。
 const sources = [];
 (function walk(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -63,6 +61,16 @@ const sources = [];
     }
   }
 })(appRoot);
+
+const defined = new Set([
+  ...generatedText.matchAll(/(?:static let|func)\s+(dm\w+)/g),
+].map((m) => m[1]));
+for (const file of sources) {
+  const src = fs.readFileSync(file, 'utf8');
+  for (const m of src.matchAll(/(?:static let|func)\s+(dm\w+)/g)) {
+    defined.add(m[1]);
+  }
+}
 
 const missing = new Map();
 for (const file of sources) {

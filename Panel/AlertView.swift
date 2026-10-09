@@ -205,7 +205,6 @@ struct AlertGroupView: View {
 struct AlertRuleRow: View {
     let rule: AlertRule
     @ObservedObject var controller: MenuBarController
-    @State private var showEditSheet = false
 
     var body: some View {
         HStack(alignment: .top, spacing: DmSpace.s8) {
@@ -267,7 +266,8 @@ struct AlertRuleRow: View {
         .contentShape(Rectangle())
         .contextMenu {
             Button {
-                showEditSheet = true
+                // 弹窗状态收敛到 controller，由 MainPanelView 根部的自绘模态统一呈现
+                controller.editingRule = rule
             } label: {
                 Label("编辑", systemImage: "pencil")
             }
@@ -276,9 +276,6 @@ struct AlertRuleRow: View {
             } label: {
                 Label("删除", systemImage: "trash")
             }
-        }
-        .sheet(isPresented: $showEditSheet) {
-            EditAlertSheet(controller: controller, rule: rule, isPresented: $showEditSheet)
         }
     }
 
@@ -333,10 +330,9 @@ struct AddAlertSheet: View {
     @State private var resetThreshold = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DmSpace.s12) {
-            Text("添加预警规则")
-                .font(.system(size: DmText.t15, weight: .semibold))
-
+        DmModalCard(
+            title: "添加预警规则",
+            content: {
             // 标的类型
             FormSection("标的类型") {
                 SegmentedTabs(
@@ -457,11 +453,8 @@ struct AddAlertSheet: View {
                     .foregroundColor(Color.dmInk2)
             }
 
-            Spacer()
-
-            // 按钮
-            HStack {
-                Spacer()
+            },
+            foot: {
                 Button("取消") { isPresented = false }
                     .buttonStyle(SecondaryButtonStyle())
                 Button("添加") {
@@ -471,10 +464,7 @@ struct AddAlertSheet: View {
                 .buttonStyle(PrimaryButtonStyle())
                 .disabled(threshold.isEmpty || label.isEmpty || resetError != nil)
             }
-        }
-        .padding(DmSpace.s16)
-        .frame(width: 380, height: 500)
-        .fixedSize(horizontal: false, vertical: true)
+        )
     }
 
     private var thresholdPlaceholder: String {
@@ -556,10 +546,9 @@ struct EditAlertSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DmSpace.s12) {
-            Text("编辑预警规则")
-                .font(.system(size: DmText.t15, weight: .semibold))
-
+        DmModalCard(
+            title: "编辑预警规则",
+            content: {
             // 标的类型
             FormSection("标的类型") {
                 SegmentedTabs(
@@ -680,11 +669,8 @@ struct EditAlertSheet: View {
                     .foregroundColor(Color.dmInk2)
             }
 
-            Spacer()
-
-            // 按钮
-            HStack {
-                Spacer()
+            },
+            foot: {
                 Button("取消") { isPresented = false }
                     .buttonStyle(SecondaryButtonStyle())
                 Button("保存") {
@@ -694,10 +680,7 @@ struct EditAlertSheet: View {
                 .buttonStyle(PrimaryButtonStyle())
                 .disabled(threshold.isEmpty || label.isEmpty || resetError != nil)
             }
-        }
-        .padding(DmSpace.s16)
-        .frame(width: 380, height: 500)
-        .fixedSize(horizontal: false, vertical: true)
+        )
     }
 
     private var thresholdPlaceholder: String {

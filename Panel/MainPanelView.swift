@@ -48,6 +48,29 @@ struct MainPanelView: View {
         }
         .frame(width: 400, height: 500)
         .background(Color.dmPanel)
+        // 预警弹窗（自绘模态，取代系统 .sheet —— macOS 26 的 sheet 玻璃外壳
+        // 在面板上多包一圈边）。挂在根部：遮罩盖满整个 400×500 面板。
+        .dmModal(
+            isPresented: controller.showAddAlert,
+            onDismiss: { controller.showAddAlert = false }
+        ) {
+            AddAlertSheet(controller: controller, isPresented: $controller.showAddAlert)
+        }
+        .dmModal(
+            isPresented: controller.editingRule != nil,
+            onDismiss: { controller.editingRule = nil }
+        ) {
+            if let rule = controller.editingRule {
+                EditAlertSheet(
+                    controller: controller,
+                    rule: rule,
+                    isPresented: Binding(
+                        get: { controller.editingRule != nil },
+                        set: { if !$0 { controller.editingRule = nil } }
+                    )
+                )
+            }
+        }
         .onReceive(controller.$pendingTab) { target in
             if let target = target {
                 // 通知点击触发的 Tab 切换：先退出设置页（如果在），再切 Tab

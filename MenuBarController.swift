@@ -12,6 +12,12 @@ final class FocusablePanel: NSPanel {
 
 /// 状态栏控制器：负责状态栏图标、定时刷新、面板弹出
 final class MenuBarController: NSObject, ObservableObject {
+    // MARK: 模态弹窗状态（自绘 DmModal，由 MainPanelView 根部统一呈现。
+    // 收敛到控制器：添加弹窗在设置页触发、编辑弹窗在提醒列表行触发，
+    // 遮罩必须盖住整面板，行/页各自的局部 overlay 都做不到。）
+    @Published var showAddAlert = false
+    @Published var editingRule: AlertRule?
+
     @Published var gold: GoldQuote?
     @Published var lastUpdate: Date?
     @Published var isLoading = false

@@ -535,3 +535,100 @@ struct PriceHeader: View {
         .frame(maxWidth: .infinity)
     }
 }
+
+// MARK: - 自绘模态弹窗（设计系统第八节「弹窗三段」）
+
+/// 面板内自绘模态：遮罩黑 0.5 + 居中卡片，点遮罩关闭。
+/// 取代系统 `.sheet` —— macOS 26 的 sheet 由系统玻璃外壳包一圈边（面板内实测
+/// 遮罩外那圈 rgb(60~74)），与自绘卡片口径（panel 底 / line 描边 / r16 /
+/// shadow-modal）是两种形态；且主面板是 400 宽的无边框 NSPanel，系统外壳的
+/// 双层观感在它上面尤其突兀（2026-10-09 用户反馈「面板外侧又包了一圈」）。
+struct DmModal<Modal: View>: ViewModifier {
+    let isPresented: Bool
+    let onDismiss: () -> Void
+    @ViewBuilder let modal: () -> Modal
+
+    func body(content: Content) -> some View {
+        ZStack {
+            content
+            if isPresented {
+                Rectangle()
+                    .fill(Color.black.opacity(0.5))
+                    .onTapGesture(perform: onDismiss)
+                modal()
+                    .padding(DmSpace.s16)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: DmMotion.fast), value: isPresented)
+    }
+}
+
+extension View {
+    /// 用法：`.dmModal(isPresented: onDismiss:) { 卡片内容 }`，挂在铺满窗口的
+    /// 视图上（MainPanelView 根），保证遮罩盖住整个面板而不是某个区块。
+    func dmModal<Modal: View>(
+        isPresented: Bool,
+        onDismiss: @escaping () -> Void,
+        @ViewBuilder modal: @escaping () -> Modal
+    ) -> some View {
+        modifier(DmModal(isPresented: isPresented, onDismiss: onDismiss, modal: modal))
+    }
+}
+
+/// 三段卡片：head（标题）/ body（可滚动内容）/ foot（按钮右对齐）。
+/// 底 `panel`、描边 `line` 1px、圆角 r16、阴影 shadow-modal —— 与密码管理
+/// `.modal` 同一套规格。宽度 368 = 主面板 400 − 两侧 16：规范里的 470 面向
+/// 标准窗口，这里的宿主是菜单栏小面板，按宿主收敛（端差异，记入规范十三节）。
+struct DmModalCard<Content: View, Foot: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+    @ViewBuilder let foot: () -> Foot
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // head：纵向 s16 / 横向 s20，下方 line 1px
+            Text(title)
+                .font(.system(size: DmText.t15, weight: .semibold))
+                .foregroundColor(Color.dmInk)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, DmSpace.s16)
+                .padding(.horizontal, DmSpace.s20)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(Color.dmLine).frame(height: DmLine.base)
+                }
+
+            // body：s20（下方 s6），超高可滚动
+            ScrollView {
+                VStack(alignment: .leading, spacing: DmSpace.s12) {
+                    content()
+                }
+                .padding(.top, DmSpace.s20)
+                .padding(.bottom, DmSpace.s6)
+                .padding(.horizontal, DmSpace.s20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            // foot：上 s14 / 横向 s20 / 下 s16，上方 line 1px，按钮右对齐、间距 s8
+            HStack(spacing: DmSpace.s8) {
+                Spacer()
+                foot()
+            }
+            .padding(.top, DmSpace.s14)
+            .padding(.horizontal, DmSpace.s20)
+            .padding(.bottom, DmSpace.s16)
+            .overlay(alignment: .top) {
+                Rectangle().fill(Color.dmLine).frame(height: DmLine.base)
+            }
+        }
+        .background(Color.dmPanel)
+        .overlay(
+            RoundedRectangle(cornerRadius: DmRadius.r16)
+                .stroke(Color.dmLine, lineWidth: DmLine.base)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: DmRadius.r16))
+        .frame(width: 368)
+        .fixedSize(horizontal: false, vertical: true)
+        .dmShadowModal()
+    }
+}
