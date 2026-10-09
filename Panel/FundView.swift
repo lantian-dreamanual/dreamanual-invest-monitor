@@ -73,11 +73,11 @@ struct FundCard: View {
 
     private var canExpand: Bool { !fund.holdings.isEmpty }
 
-    /// 覆盖度文案：「前 10 大重仓 · 覆盖 62%」
+    /// 覆盖度文案：「前 10 大重仓行情覆盖 62%」（覆盖的对象是重仓的实时行情）
     private func coverageLabel(_ cov: Double) -> String {
         let n = fund.holdings.count
         let pct = Int(cov.rounded())
-        return n > 0 ? "前 \(n) 大重仓 · 覆盖 \(pct)%" : "覆盖 \(pct)%"
+        return n > 0 ? "前 \(n) 大重仓行情覆盖 \(pct)%" : "重仓行情覆盖 \(pct)%"
     }
 
     /// 覆盖度不足一半：估值数字置灰，让它不再被当成权威读数
