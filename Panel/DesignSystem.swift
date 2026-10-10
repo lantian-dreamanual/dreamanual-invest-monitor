@@ -578,12 +578,14 @@ final class DropdownModel: ObservableObject {
 struct DmMenuPicker<Value: Hashable>: View {
     @Binding var selection: Value
     let items: [Item]
-    /// bare = 行内裸触发（弹窗行）；row = 设置行内嵌 —— 标准档 32 / panel-3 底
-    /// （分组卡相邻一档，2026-10-10 设置行控件统一方案 A）；field = 字段壳
-    /// （面板头部这类悬空位置，panel-2 —— 主区相邻一档）
+    /// bare = 裸触发（当前零调用，仅作兜底默认）；row = 设置行内嵌 —— 标准档
+    /// 32 / panel-3 底（分组卡相邻一档，2026-10-10 设置行控件统一方案 A）；
+    /// field = 字段壳（面板头部悬空位置，32 / panel-2）；modal = 弹窗表单档
+    /// —— 38 / panel-2 / line-2，与弹窗里的 FormTextField 同档（38 档留给
+    /// 弹窗和主区表单，同日方案 A 的另一半；2026-10-10 收掉预警弹窗 4 处裸触发）。
     var style: Style = .bare
 
-    enum Style { case bare, field, row }
+    enum Style { case bare, field, row, modal }
 
     struct Item {
         let value: Value
@@ -619,6 +621,18 @@ struct DmMenuPicker<Value: Hashable>: View {
                 trigger
                     .padding(.horizontal, DmSpace.s12)
                     .frame(height: DmControl.h32)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: DmRadius.r8).fill(Color.dmPanel2)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: DmRadius.r8)
+                            .strokeBorder(Color.dmLine2, lineWidth: DmLine.base)
+                    )
+            case .modal:
+                trigger
+                    .padding(.horizontal, DmSpace.s12)
+                    .frame(height: DmControl.h38)
                     .frame(maxWidth: .infinity)
                     .background(
                         RoundedRectangle(cornerRadius: DmRadius.r8).fill(Color.dmPanel2)

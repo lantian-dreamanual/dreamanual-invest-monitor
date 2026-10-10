@@ -365,7 +365,8 @@ struct AddAlertSheet: View {
                     if targetType == .sector {
                         DmMenuPicker(
                             selection: $targetCode,
-                            items: controller.configStore.config.sectors.map { .init(value: $0.code, label: "\($0.name) (\($0.code))") }
+                            items: controller.configStore.config.sectors.map { .init(value: $0.code, label: "\($0.name) (\($0.code))") },
+                            style: .modal
                         )
                         .onChange(of: targetCode) { newCode in
                             targetName = controller.configStore.config.sectors.first(where: { $0.code == newCode })?.name ?? ""
@@ -373,7 +374,8 @@ struct AddAlertSheet: View {
                     } else {
                         DmMenuPicker(
                             selection: $targetCode,
-                            items: controller.configStore.config.funds.map { .init(value: $0.code, label: "\($0.name) (\($0.code))") }
+                            items: controller.configStore.config.funds.map { .init(value: $0.code, label: "\($0.name) (\($0.code))") },
+                            style: .modal
                         )
                         .onChange(of: targetCode) { newCode in
                             targetName = controller.configStore.config.funds.first(where: { $0.code == newCode })?.name ?? ""
@@ -580,7 +582,8 @@ struct EditAlertSheet: View {
                     if targetType == .sector {
                         DmMenuPicker(
                             selection: $targetCode,
-                            items: controller.configStore.config.sectors.map { .init(value: $0.code, label: "\($0.name) (\($0.code))") }
+                            items: controller.configStore.config.sectors.map { .init(value: $0.code, label: "\($0.name) (\($0.code))") },
+                            style: .modal
                         )
                         .onChange(of: targetCode) { newCode in
                             targetName = controller.configStore.config.sectors.first(where: { $0.code == newCode })?.name ?? ""
@@ -588,7 +591,8 @@ struct EditAlertSheet: View {
                     } else {
                         DmMenuPicker(
                             selection: $targetCode,
-                            items: controller.configStore.config.funds.map { .init(value: $0.code, label: "\($0.name) (\($0.code))") }
+                            items: controller.configStore.config.funds.map { .init(value: $0.code, label: "\($0.name) (\($0.code))") },
+                            style: .modal
                         )
                         .onChange(of: targetCode) { newCode in
                             targetName = controller.configStore.config.funds.first(where: { $0.code == newCode })?.name ?? ""
