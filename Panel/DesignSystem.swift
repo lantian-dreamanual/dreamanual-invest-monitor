@@ -590,6 +590,8 @@ struct DmMenuPicker<Value: Hashable>: View {
     /// field = 字段壳（面板头部悬空位置，32 / panel-2）；modal = 弹窗表单档
     /// —— 38 / panel-2 / line-2，与弹窗里的 FormTextField 同档（38 档留给
     /// 弹窗和主区表单，同日方案 A 的另一半；2026-10-10 收掉预警弹窗 4 处裸触发）。
+    /// row 宽度对齐 vault `.srow-ctl`：内容自适应、下限 132 —— 2026-10-10
+    /// 首版错加了行尾 Spacer，在「标签 + Spacer + 控件」的行里贪婪撑满整行。
     var style: Style = .bare
 
     enum Style { case bare, field, row, modal }
@@ -617,6 +619,7 @@ struct DmMenuPicker<Value: Hashable>: View {
                 trigger
                     .padding(.horizontal, DmSpace.s12)
                     .frame(height: DmControl.h32)
+                    .frame(minWidth: 132)
                     .background(
                         RoundedRectangle(cornerRadius: DmRadius.r8).fill(Color.dmPanel3)
                     )
@@ -624,6 +627,9 @@ struct DmMenuPicker<Value: Hashable>: View {
                         RoundedRectangle(cornerRadius: DmRadius.r8)
                             .strokeBorder(Color.dmLine2, lineWidth: DmLine.base)
                     )
+                    // 行内不贪婪：撑满整行是 bug（见 style 注释）。fixedSize
+                    // 收到内容自适应宽，外层 minWidth 132 托底（对齐 vault）。
+                    .fixedSize(horizontal: true, vertical: false)
             case .field:
                 trigger
                     .padding(.horizontal, DmSpace.s12)
@@ -653,12 +659,7 @@ struct DmMenuPicker<Value: Hashable>: View {
         .contentShape(Rectangle())
         .onHover { isHovered = $0 }
         .onTapGesture { open() }
-        .background(
-            GeometryReader { geo in
-                Color.clear.preference(key: PickerFrameKey.self, value: geo.frame(in: .global))
-            }
-        )
-        .onPreferenceChange(PickerFrameKey.self) { triggerFrame = $0 }
+        .dmGlobalFrame { triggerFrame = $0 }
     }
 
     private var trigger: some View {
@@ -786,7 +787,29 @@ private struct DropdownRow: View {
     }
 }
 
-private struct PickerFrameKey: PreferenceKey {
+/// 读全局坐标 frame：DmMenuPicker 记触发器位置用。
+///
+/// 为什么不直接 `.background(GeometryReader)` + `onPreferenceChange`：
+/// 这套老写法在 macOS 26 的 SwiftUI 上实测只送来 `.zero`（2026-10-10 最小
+/// 复现证实，触发器 frame 恒为零 → 菜单卡锚点归零、整体漂到窗口左上角）。
+/// macOS 15 起改走 `onGeometryChange`；旧系统保留老写法（那边行为正常）。
+extension View {
+    @ViewBuilder
+    func dmGlobalFrame(onChange action: @escaping (CGRect) -> Void) -> some View {
+        if #available(macOS 15.0, *) {
+            onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }, action: action)
+        } else {
+            background(
+                GeometryReader { geo in
+                    Color.clear.preference(key: DmGlobalFrameKey.self, value: geo.frame(in: .global))
+                }
+            )
+            .onPreferenceChange(DmGlobalFrameKey.self, perform: action)
+        }
+    }
+}
+
+private struct DmGlobalFrameKey: PreferenceKey {
     static var defaultValue: CGRect = .zero
     static func reduce(value: inout CGRect, nextValue: () -> CGRect) { value = nextValue() }
 }
