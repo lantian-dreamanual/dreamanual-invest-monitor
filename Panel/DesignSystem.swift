@@ -676,8 +676,12 @@ struct DmMenuPicker<Value: Hashable>: View {
 
     private func open() {
         dropdown.toggle(
+            // 下限 132 与菜单卡同一值（DmDropdownOverlay.menuCard）—— 触发器
+            // 盒的 minWidth 也是 132，三处一致菜单卡才与触发器严格同宽
+            //（2026-10-10 用户反馈：卡比盒宽 18px 读作两个控件）。bare 触发器
+            // 内容自适应可能更窄，由这个下限兜住。
             anchor: triggerFrame,
-            minWidth: max(triggerFrame.width, 150),
+            minWidth: max(triggerFrame.width, 132),
             labels: items.map(\.label),
             selectedIndex: items.firstIndex(where: { $0.value == selection }),
             pick: { idx in
@@ -716,7 +720,8 @@ struct DmDropdownOverlay: View {
     private func menuCard(_ req: DropdownModel.Request, container: CGSize, rootFrame: CGRect) -> some View {
         let rowHeight = DmControl.h28
         let cardHeight = CGFloat(req.labels.count) * rowHeight + DmSpace.s8
-        let cardWidth = max(req.minWidth, 150)
+        // 与触发器同宽优先（open() 的下限与本处同为 132）：宽度不一致读作两个控件
+        let cardWidth = max(req.minWidth, 132)
         // 屏幕坐标 → 面板本地坐标
         let anchor = req.anchor.offsetBy(dx: -rootFrame.minX, dy: -rootFrame.minY)
         let belowY = anchor.maxY + DmSpace.s4
