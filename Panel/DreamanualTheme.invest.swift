@@ -47,7 +47,7 @@ extension Color {
     static let dmAccentFill2 = Color(red: 0.9922, green: 0.7804, blue: 0.0)  // #fdc700
     static let dmOnAccent = Color(red: 0.0392, green: 0.0392, blue: 0.0392)  // #0a0a0a
     static let dmUp = Color(red: 0.9843, green: 0.1725, blue: 0.2118)  // #fb2c36
-    static let dmDown = Color(red: 0.0863, green: 0.6392, blue: 0.2902)  // #16a34a
+    static let dmDown = Color(red: 0.0, green: 0.651, blue: 0.2431)  // #00a63e
 }
 
 // ---------- 尺度 ----------
