@@ -167,7 +167,8 @@ struct SettingsView: View {
                                 DmMenuPicker(
                                     selection: statusBarSourceBinding,
                                     items: [DmMenuPicker<String>.Item(value: "gold", label: "黄金(CNY/g)")]
-                                        + controller.configStore.config.sectors.map { .init(value: $0.code, label: $0.name) }
+                                        + controller.configStore.config.sectors.map { .init(value: $0.code, label: $0.name) },
+                                    style: .row
                                 )
                             }
                             .padding(.horizontal, DmSpace.s14)
@@ -497,7 +498,7 @@ struct SettingsView: View {
     private var sectorAddRow: some View {
         VStack(spacing: DmSpace.s6) {
             HStack(spacing: DmSpace.s8) {
-                FormTextField(placeholder: "板块代码 (BK0475)", text: $newSectorCode)
+                FormTextField(placeholder: "板块代码 (BK0475)", text: $newSectorCode, rowInline: true)
                     .onSubmit { lookupSector() }
                 searchButton(
                     code: newSectorCode,
@@ -513,7 +514,7 @@ struct SettingsView: View {
     private var fundAddRow: some View {
         VStack(spacing: DmSpace.s6) {
             HStack(spacing: DmSpace.s8) {
-                FormTextField(placeholder: "基金代码 (161725)", text: $newFundCode)
+                FormTextField(placeholder: "基金代码 (161725)", text: $newFundCode, rowInline: true)
                     .onSubmit { lookupFund() }
                 searchButton(
                     code: newFundCode,
@@ -526,7 +527,8 @@ struct SettingsView: View {
         }
     }
 
-    /// 搜索按钮：与输入框等高（表单档 38pt），三种状态循环
+    /// 搜索按钮：与同行输入框等高（设置行内嵌统一标准档 32，2026-10-10 方案 A；
+    /// 原先跟表单档 38），三种状态循环
     /// - 就绪态（代码未改 / 搜索完成）：无底色 + 主色放大镜
     /// - 待搜索态（代码已改尚未搜索）：主色底 + 深色放大镜
     /// - 搜索中：无底色 + 主色放大镜 + 旋转
@@ -535,9 +537,9 @@ struct SettingsView: View {
         let trimmed = code.trimmingCharacters(in: .whitespaces)
         let needsSearch = !trimmed.isEmpty && trimmed.uppercased() != lastSearched.uppercased() && !isSearching
         Button(action: action) {
-            LucideIcon("search", size: DmIcon.i16)
+            LucideIcon("search", size: DmIcon.i14)
                 .foregroundColor(needsSearch ? Color.dmOnAccent : Color.dmAccent)
-                .frame(width: DmControl.h38, height: DmControl.h38)
+                .frame(width: DmControl.h32, height: DmControl.h32)
                 .background(
                     RoundedRectangle(cornerRadius: DmRadius.r8)
                         .fill(needsSearch ? Color.dmAccentFill : Color.clear)

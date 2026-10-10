@@ -418,6 +418,10 @@ struct FormTextField: View {
     let placeholder: String
     @Binding var text: String
     var width: CGFloat? = nil
+    /// 设置行内嵌紧凑档（2026-10-10 设置行控件统一方案 A）：高 32、底 panel-3
+    /// （SettingsCard 分组卡是 panel-2，取相邻一档）。弹窗表单字段仍走表单档
+    /// 38 / panel-2，只有调用点在设置分组卡里的传 true。
+    var rowInline: Bool = false
 
     @FocusState private var isFocused: Bool
 
@@ -430,10 +434,10 @@ struct FormTextField: View {
             // 高度先钉、底与描边后包：反过来的话 background/overlay 只裹住 ~16pt 的
             // 裸输入框，frame 钉的 38 成了透明命中区 —— 2026-10-09 出图实测抓到，
             // 视觉上就是用户看到的「胶囊小字段」。
-            .frame(height: DmControl.h38)
+            .frame(height: rowInline ? DmControl.h32 : DmControl.h38)
             .background(
                 RoundedRectangle(cornerRadius: DmRadius.r8)
-                    .fill(Color.dmPanel2)
+                    .fill(rowInline ? Color.dmPanel3 : Color.dmPanel2)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DmRadius.r8)
@@ -574,10 +578,12 @@ final class DropdownModel: ObservableObject {
 struct DmMenuPicker<Value: Hashable>: View {
     @Binding var selection: Value
     let items: [Item]
-    /// bare = 行内裸触发（设置行 / 弹窗行）；field = 字段壳（面板头部这类悬空位置）
+    /// bare = 行内裸触发（弹窗行）；row = 设置行内嵌 —— 标准档 32 / panel-3 底
+    /// （分组卡相邻一档，2026-10-10 设置行控件统一方案 A）；field = 字段壳
+    /// （面板头部这类悬空位置，panel-2 —— 主区相邻一档）
     var style: Style = .bare
 
-    enum Style { case bare, field }
+    enum Style { case bare, field, row }
 
     struct Item {
         let value: Value
@@ -598,6 +604,17 @@ struct DmMenuPicker<Value: Hashable>: View {
             switch style {
             case .bare:
                 trigger
+            case .row:
+                trigger
+                    .padding(.horizontal, DmSpace.s12)
+                    .frame(height: DmControl.h32)
+                    .background(
+                        RoundedRectangle(cornerRadius: DmRadius.r8).fill(Color.dmPanel3)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: DmRadius.r8)
+                            .strokeBorder(Color.dmLine2, lineWidth: DmLine.base)
+                    )
             case .field:
                 trigger
                     .padding(.horizontal, DmSpace.s12)
@@ -629,7 +646,7 @@ struct DmMenuPicker<Value: Hashable>: View {
                 .font(.system(size: DmText.t13))
                 .foregroundColor(isHovered ? Color.dmInk : Color.dmInk2)
                 .lineLimit(1)
-            if style == .field { Spacer(minLength: 0) }
+            if style != .bare { Spacer(minLength: 0) }
             LucideIcon("chevrons-up-down", size: DmIcon.i12)
                 .foregroundColor(isHovered ? Color.dmInk2 : Color.dmInk3)
         }
