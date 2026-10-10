@@ -50,7 +50,7 @@ struct AlertRuleList: View {
                         get: { !controller.alertConfig.rules.allSatisfy { !$0.enabled } },
                         set: { on in controller.alertConfig.setAllEnabled(on) }
                     ))
-                    .toggleStyle(GoldToggleStyle())
+                    .toggleStyle(DmToggleStyle())
                     .labelsHidden()
                 }
                 .padding(.horizontal, DmSpace.s14)
@@ -257,7 +257,7 @@ struct AlertRuleRow: View {
                 get: { rule.enabled },
                 set: { _ in controller.alertConfig.toggle(rule) }
             ))
-            .toggleStyle(GoldToggleStyle())
+            .toggleStyle(DmToggleStyle())
             .labelsHidden()
         }
         .padding(.horizontal, DmSpace.s14)

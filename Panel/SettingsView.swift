@@ -222,7 +222,7 @@ struct SettingsView: View {
                                     set: { controller.updateChecker.autoCheckEnabled = $0 }
                                 ))
                                 .labelsHidden()
-                                .toggleStyle(GoldToggleStyle())
+                                .toggleStyle(DmToggleStyle())
                             }
                             .padding(.horizontal, DmSpace.s14)
                             .padding(.vertical, DmSpace.s8)

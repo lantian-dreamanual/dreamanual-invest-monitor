@@ -237,28 +237,35 @@ struct IconButton: View {
     }
 }
 
-// ============ 设计系统：品牌开关 ============
+// ============ 设计系统：开关 ============
 
-/// 金色开关：对齐 macOS 系统开关形态（胶囊轨道 + 滑块），开启态用品牌金 + 深色滑块
-struct GoldToggleStyle: ToggleStyle {
+/// 通用开关：形态基准 42×24（2026-10-10 三端统一，与密码管理 `.switch` 同规格，
+/// video 同日从系统 Toggle 换成同构自绘）。轨道 Capsule：关态 `line-2`、
+/// 开态 `accent-fill`；滑块直径 20、行程 18。滑块颜色：invest 是唯一深字方案，
+/// 开态滑块取 `onAccent`（与主按钮深字同读）；关态滑块白色（与 vault / video 一致）。
+/// 动效 `DmMotion.fast`；禁用沿用按钮口径 —— 原样整体压暗 0.5。
+struct DmToggleStyle: ToggleStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
     func makeBody(configuration: Configuration) -> some View {
         Button(action: { configuration.isOn.toggle() }) {
-            RoundedRectangle(cornerRadius: DmRadius.r10, style: .continuous)
-                .fill(configuration.isOn ? Color.dmAccentFill : Color.dmPanel3)
-                .frame(width: 32, height: 19)
+            Capsule(style: .continuous)
+                .fill(configuration.isOn ? Color.dmAccentFill : Color.dmLine2)
+                .frame(width: 42, height: 24)
                 .overlay(
                     GeometryReader { geo in
                         Circle()
-                            .fill(configuration.isOn ? Color.dmOnAccent : Color.dmInk)
-                            .frame(width: 13, height: 13)
+                            .fill(configuration.isOn ? Color.dmOnAccent : Color.white)
+                            .frame(width: 20, height: 20)
                             .offset(
-                                x: configuration.isOn ? geo.size.width - 15 : 2,
-                                y: (geo.size.height - 13) / 2
+                                x: configuration.isOn ? geo.size.width - 22 : 2,
+                                y: (geo.size.height - 20) / 2
                             )
                     }
                 )
         }
         .buttonStyle(.plain)
+        .opacity(isEnabled ? 1 : 0.5)
         .animation(.easeInOut(duration: DmMotion.fast), value: configuration.isOn)
     }
 }
