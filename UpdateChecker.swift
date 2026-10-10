@@ -42,10 +42,10 @@ final class UpdateChecker: ObservableObject {
     let currentVersion: String
 
     /// URL 常量：固定不变，每次发版只改服务器上的文件
-    private let primaryURL = URL(string: "https://dreamanual.com/works/downloads/version.json")!
+    private let primaryURL = URL(string: "https://dreamanual.com/works/downloads/invest-version.json")!
     private let githubAPIURL = URL(string: "https://api.github.com/repos/lantian-dreamanual/invest-monitor/releases/latest")!
 
-    /// 固定的下载链接（version.json 和 GitHub Release 中 URL 永不变）
+    /// 固定的下载链接（invest-version.json 和 GitHub Release 中 URL 永不变）
     private let websiteDownloadURL = "https://dreamanual.com/works/downloads/Dreamanual 投资监控.dmg"
     private let githubReleaseURL = "https://github.com/lantian-dreamanual/invest-monitor/releases"
 
@@ -100,7 +100,7 @@ final class UpdateChecker: ObservableObject {
         Task { [weak self] in
             guard let self else { return }
 
-            // A 源：网站 version.json（3 秒超时）
+            // A 源：网站 invest-version.json（3 秒超时）
             let primaryResult = await self.fetchFromPrimary()
             if let info = primaryResult {
                 await self.handleResult(info)
@@ -127,7 +127,7 @@ final class UpdateChecker: ObservableObject {
 
     // MARK: - 网络请求
 
-    /// A 源：网站 version.json
+    /// A 源：网站 invest-version.json
     private func fetchFromPrimary() async -> UpdateInfo? {
         var request = URLRequest(url: primaryURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 3)
         request.setValue("DreamanualInvestMonitor/\(currentVersion)", forHTTPHeaderField: "User-Agent")
