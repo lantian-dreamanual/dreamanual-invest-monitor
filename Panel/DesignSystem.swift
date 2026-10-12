@@ -106,7 +106,7 @@ struct MarketStatusBadge: View {
 
 /// 自定义分段控件：**内边距形态**（2026-10-12 规范反转，见 design-system.md
 /// 第八节「分段控件」，基准实现是 NAS 助手的 `DmSegmented`）。
-/// 容器 `panel-2` 底 + `line-2` 发丝描边 + `r-8`（控件档）+ 内边距 `s2`；
+/// 容器底按所在面取（`surface.controlFill`：`panel` 面取 `panel-2`）+ `line-2` 发丝描边 + `r-8`（控件档）+ 内边距 `s2`；
 /// 段高钉控件档、圆角 `r-6`、段间距 `s2`；选中段实心 `dmAccentFill` +
 /// `dmOnAccent` 深字，未选中悬停字 `ink-2` → `ink`。
 ///
@@ -132,6 +132,11 @@ struct SegmentedTabs<T: Hashable>: View {
     @Binding var selection: T
     var label: (T) -> String
     var style: Style = .default
+    /// 容器底色按所在面取（「相邻一档」口径，与 `formField` 同一条）。本 app 的 7 处
+    /// 调用点所在面都是 `panel`（主 Tab 在面板、6 处在自绘弹窗卡片，卡片底就是 `panel`），
+    /// 全部走默认值。2026-10-12 从写死的 `dmPanel2` 改来 —— 写死就调不到 `panel-3`，
+    /// 哪天分段控件搬进 `panel-2` 卡片，容器底会与卡面同色、只剩描边可辨。
+    var surface: DmSurface = .panel
     @State private var hovered: T?
     @State private var windowActive = true
 
@@ -175,11 +180,11 @@ struct SegmentedTabs<T: Hashable>: View {
             }
         }
         .padding(DmSpace.s2)
-        // 容器底 panel-2：与输入框同一「所在面相邻一档」取法（弹窗卡片与主区都是
-        // panel，容器提一档）。卡面本身是 panel-2 时由调用点抬 panel-3。
+        // 容器底按所在面取（第八节「分段控件」）：主区与弹窗卡片都是 panel，取相邻
+        // 一档 panel-2；卡面本身是 panel-2 时由调用点传 `.card` 抬 panel-3。
         .background(
             RoundedRectangle(cornerRadius: DmRadius.r8)
-                .fill(Color.dmPanel2)
+                .fill(surface.controlFill)
         )
         .overlay(
             RoundedRectangle(cornerRadius: DmRadius.r8)
@@ -443,26 +448,48 @@ struct FormLabel: View {
     }
 }
 
+/// 控件所在的面 ——「所在面相邻一档」取色的入参（第八节「输入框」与「卡片」）。
+/// 主区（`panel`）与自绘弹窗卡片（底也是 `panel`）上的控件取 `panel-2`；嵌在
+/// `panel-2` 分组卡（`SettingsCard`）里的控件抬到 `panel-3` —— 不抬的话控件底与卡面
+/// 同色，只剩描边可辨。
+///
+/// 与 NAS 助手 `DmSurface` 同名同义（2026-10-12 收口）：此前同一件事在本 app 里有两套
+/// 写法 —— 分段控件容器把 `dmPanel2` 写死（调不到 panel-3），输入框用 `rowInline: Bool`
+/// 兼表「面板 + 紧凑档」两件事。现在两者都从这里取。
+enum DmSurface {
+    case panel
+    case card
+
+    var controlFill: Color {
+        switch self {
+        case .panel: return .dmPanel2
+        case .card: return .dmPanel3
+        }
+    }
+}
+
 /// 自定义输入框：可见边框 + 聚焦高亮，解决系统默认边框不可见问题。
 ///
 /// 取设计系统**表单规格**（高 38 / 横向内边距 12 / 字号 13 / 圆角 8），与视频下载
 /// 的 `formField()`、密码管理的 `.inp` 同档 —— 横向内边距比按钮小一档：按钮的标签
 /// 居中、两边要留呼吸；输入框的文字起点就是内边距，再给 16 会让文字离边太远。
 ///
-/// 底色 `dmPanel2`（按「输入框取所在面相邻一档」：2026-10-09 弹窗改自绘后卡片是
-/// `panel`，相邻一档即 panel-2 —— 与密码管理主区输入框（vault `.inp`）同款。
-/// 早年嵌在 `panel-2` 卡片里时取的是 panel-3，随宿主改档）。边框 `dmLine2` 1px
-/// 常态 / `dmAccent2` 1px 聚焦（设计系统第八节；2026-10-09 从
-/// `dmAccentLine` 改浅档 —— 800 深档压深底辨识度不够，与 vault `.inp:focus`、
+/// 底色按 `surface` 取（「输入框取所在面相邻一档」）：2026-10-09 弹窗改自绘后卡片是
+/// `panel`，相邻一档即 `panel-2` —— 与密码管理主区输入框（vault `.inp`）同款；
+/// 嵌在 `panel-2` 分组卡里时传 `.card` 抬到 `panel-3`（同设置分组卡的行内控件，见
+/// `SettingsView`）。边框 `dmLine2` 1px 常态 / `dmAccent2` 1px 聚焦（设计系统第八节；
+/// 2026-10-09 从 `dmAccentLine` 改浅档 —— 800 深档压深底辨识度不够，与 vault `.inp:focus`、
 /// 视频下载 `formField()` 同一取法。更早一版聚焦是 `dmAccent2` 1.5px，宽度不对，档位是对的）。
 struct FormTextField: View {
     let placeholder: String
     @Binding var text: String
     var width: CGFloat? = nil
-    /// 设置行内嵌紧凑档（2026-10-10 设置行控件统一方案 A）：高 32、底 panel-3
-    /// （SettingsCard 分组卡是 panel-2，取相邻一档）。弹窗表单字段仍走表单档
-    /// 38 / panel-2，只有调用点在设置分组卡里的传 true。
-    var rowInline: Bool = false
+    /// 所在面（见 `DmSurface`）。
+    var surface: DmSurface = .panel
+    /// 紧凑档：高 32（设置行内嵌的控件统一方案 A）。表单档是 38。
+    /// 2026-10-12 从 `rowInline` 拆出来 —— 那个参数兼表「面板 + 紧凑档」两件事，
+    /// 想只改一件事的时候改不动。
+    var compact: Bool = false
 
     @FocusState private var isFocused: Bool
 
@@ -475,10 +502,9 @@ struct FormTextField: View {
             // 高度先钉、底与描边后包：反过来的话 background/overlay 只裹住 ~16pt 的
             // 裸输入框，frame 钉的 38 成了透明命中区 —— 2026-10-09 出图实测抓到，
             // 视觉上就是用户看到的「胶囊小字段」。
-            .frame(height: rowInline ? DmControl.h32 : DmControl.h38)
+            .frame(height: compact ? DmControl.h32 : DmControl.h38)
             .background(
-                RoundedRectangle(cornerRadius: DmRadius.r8)
-                    .fill(rowInline ? Color.dmPanel3 : Color.dmPanel2)
+                RoundedRectangle(cornerRadius: DmRadius.r8).fill(surface.controlFill)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DmRadius.r8)

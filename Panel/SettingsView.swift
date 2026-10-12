@@ -498,7 +498,7 @@ struct SettingsView: View {
     private var sectorAddRow: some View {
         VStack(spacing: DmSpace.s6) {
             HStack(spacing: DmSpace.s8) {
-                FormTextField(placeholder: "板块代码 (BK0475)", text: $newSectorCode, rowInline: true)
+                FormTextField(placeholder: "板块代码 (BK0475)", text: $newSectorCode, surface: .card, compact: true)
                     .onSubmit { lookupSector() }
                 searchButton(
                     code: newSectorCode,
@@ -514,7 +514,7 @@ struct SettingsView: View {
     private var fundAddRow: some View {
         VStack(spacing: DmSpace.s6) {
             HStack(spacing: DmSpace.s8) {
-                FormTextField(placeholder: "基金代码 (161725)", text: $newFundCode, rowInline: true)
+                FormTextField(placeholder: "基金代码 (161725)", text: $newFundCode, surface: .card, compact: true)
                     .onSubmit { lookupFund() }
                 searchButton(
                     code: newFundCode,
