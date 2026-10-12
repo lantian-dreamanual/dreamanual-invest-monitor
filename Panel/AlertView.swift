@@ -401,7 +401,9 @@ struct AddAlertSheet: View {
 
             // 方向 + 阈值 + 确认天数。三个组之间用等宽弹性空档（最小 s12）：
             // 原先只有方向后面一个 Spacer，方向→阈值一大段、阈值→确认天数 s10，
-            // 一行里两种节奏。三件控件现已同为 38 档高（SegmentedTabs compact 钉档）。
+            // 一行里两种节奏。分段控件段高 38、容器随内边距自然 42（2026-10-12
+            // 内边距形态），与同排 38 的输入框按顶对齐排；分段固定宽 156 是补回
+            // 容器 2×s2 内边距与 s2 段间距（原 148 按段与容器同高的无缝形态算的）。
             // 确认天数说明贴在行下方 s4 —— 与复位价的「字段→提示」间距同节奏
             // （原先漂在提醒文案下面、吃的是 s12 段距，两处提示离各自字段不一样远）。
             VStack(alignment: .leading, spacing: DmSpace.s4) {
@@ -413,7 +415,7 @@ struct AddAlertSheet: View {
                             label: { d in d == .above ? "≥ 涨到" : "≤ 跌到" },
                             style: .compact
                         )
-                        .frame(width: 148)
+                        .frame(width: 156)
                     }
                     Spacer(minLength: DmSpace.s12)
                     FormSection("阈值") {
@@ -618,7 +620,9 @@ struct EditAlertSheet: View {
 
             // 方向 + 阈值 + 确认天数。三个组之间用等宽弹性空档（最小 s12）：
             // 原先只有方向后面一个 Spacer，方向→阈值一大段、阈值→确认天数 s10，
-            // 一行里两种节奏。三件控件现已同为 38 档高（SegmentedTabs compact 钉档）。
+            // 一行里两种节奏。分段控件段高 38、容器随内边距自然 42（2026-10-12
+            // 内边距形态），与同排 38 的输入框按顶对齐排；分段固定宽 156 是补回
+            // 容器 2×s2 内边距与 s2 段间距（原 148 按段与容器同高的无缝形态算的）。
             // 确认天数说明贴在行下方 s4 —— 与复位价的「字段→提示」间距同节奏
             // （原先漂在提醒文案下面、吃的是 s12 段距，两处提示离各自字段不一样远）。
             VStack(alignment: .leading, spacing: DmSpace.s4) {
@@ -630,7 +634,7 @@ struct EditAlertSheet: View {
                             label: { d in d == .above ? "≥ 涨到" : "≤ 跌到" },
                             style: .compact
                         )
-                        .frame(width: 148)
+                        .frame(width: 156)
                     }
                     Spacer(minLength: DmSpace.s12)
                     FormSection("阈值") {

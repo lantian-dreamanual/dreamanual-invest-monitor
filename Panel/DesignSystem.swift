@@ -103,38 +103,51 @@ struct MarketStatusBadge: View {
 
 // ============ 设计系统：分段控件 ============
 
-/// 自定义分段控件：对齐 macOS Tahoe 系统设置样式
-/// 选中态 = `dmAccentFill` 实心底 + `dmOnAccent` 深字（2026-10-09 从
-/// `dmAccentSoft` 深底 + `dmAccent2` 亮字改来 —— 用户反馈「主色深档底+主色
-/// 浅档字很难看」；本 app 的主按钮本就是黄底深字（四端唯一深字方案），
-/// 分段控件对齐按钮即「主色档底+黑字」的旧观感，同一强调色只有一套语义）；
-/// 未选中 = 透明 + 次要色文字
-/// 解决 nonactivatingPanel 下系统分段控件选中态变灰的问题
+/// 自定义分段控件：**内边距形态**（2026-10-12 规范反转，见 design-system.md
+/// 第八节「分段控件」，基准实现是 NAS 助手的 `DmSegmented`）。
+/// 容器 `panel-2` 底 + `line-2` 发丝描边 + `r-8`（控件档）+ 内边距 `s2`；
+/// 段高钉控件档、圆角 `r-6`、段间距 `s2`；选中段实心 `dmAccentFill` +
+/// `dmOnAccent` 深字，未选中悬停字 `ink-2` → `ink`。
+///
+/// 取代 2026-10-09 的无缝形态（段与容器同高、容器 `r-6`、1px 描边、段间无缝）——
+/// 那次为治「纵向 padding 撑高随字体漂」把内边距整个收掉了；行高钉档的结论保留，
+/// 钉的对象从容器改成段，容器总高随内边距自然长出 4px（32 / 42），不另设档。
+///
+/// 选中态取 `dmAccentFill` 而非四态表的「取下一档 `accent-fill-2`」：本 app 与
+/// NAS 助手走深字方案（fill 500 / fill2 400，下一档更亮），四态表那条是给白字
+/// 方案写的。2026-10-09 从 `dmAccentSoft` 深底 + `dmAccent2` 亮字改来 —— 用户
+/// 反馈「主色深档底+主色浅档字很难看」，对齐本 app 主按钮（黄底深字）。
+///
+/// 未选中 = 透明 + 次要色文字。解决 nonactivatingPanel 下系统分段控件选中态变灰。
 struct SegmentedTabs<T: Hashable>: View {
     let items: [T]
     @Binding var selection: T
     var label: (T) -> String
     var style: Style = .default
+    @State private var hovered: T?
 
     enum Style {
-        case `default`      // 主 Tab：通栏等宽，控件档 28
-        case compact        // 表单内：跟随内容宽度，与同排输入框对齐取表单档 38
+        case `default`      // 主 Tab：通栏等宽，段高控件档 28（容器 32）
+        case compact        // 表单内：跟随内容宽度，段高表单档 38（容器 42）
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(items.enumerated()), id: \.element) { idx, item in
+        HStack(spacing: DmSpace.s2) {
+            ForEach(items, id: \.self) { item in
                 let selected = item == selection
-                let isLast = idx == items.count - 1
                 Button {
                     selection = item
                 } label: {
                     Text(label(item))
                         .font(.system(size: DmText.t12, weight: selected ? .medium : .regular))
-                        .foregroundColor(selected ? Color.dmOnAccent : Color.dmInk2)
+                        .foregroundColor(
+                            selected ? Color.dmOnAccent
+                                     : (hovered == item ? Color.dmInk : Color.dmInk2)
+                        )
                         .lineLimit(1)
                         .padding(.horizontal, style == .default ? DmSpace.s16 : DmSpace.s12)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: style == .default ? DmControl.h28 : DmControl.h38)
                         .background(
                             RoundedRectangle(cornerRadius: DmRadius.r6)
                                 .fill(Color.dmAccentFill)
@@ -143,22 +156,26 @@ struct SegmentedTabs<T: Hashable>: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .onHover { isInside in
+                    if isInside {
+                        hovered = item
+                    } else if hovered == item {
+                        hovered = nil
+                    }
+                }
             }
         }
-        // 行高钉控件档（2026-10-09）：原先纵向 padding 6 撑出 ~28，随字体度量漂，
-        // 且预警弹窗里与 38 的输入框同排差出一截。default 28 / compact 38。
-        .frame(height: style == .default ? DmControl.h28 : DmControl.h38)
-        // 容器底 panel-2：与输入框同一「所在面相邻一档」取法（弹窗卡片是 panel，
-        // 容器原先取 panel 同色隐形，只剩描边；2026-10-09 随输入框改档一起提）。
+        .padding(DmSpace.s2)
+        // 容器底 panel-2：与输入框同一「所在面相邻一档」取法（弹窗卡片与主区都是
+        // panel，容器提一档）。卡面本身是 panel-2 时由调用点抬 panel-3。
         .background(
-            RoundedRectangle(cornerRadius: DmRadius.r6)
+            RoundedRectangle(cornerRadius: DmRadius.r8)
                 .fill(Color.dmPanel2)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: DmRadius.r6)
-                .stroke(Color.dmLine2, lineWidth: DmLine.base)
+            RoundedRectangle(cornerRadius: DmRadius.r8)
+                .strokeBorder(Color.dmLine2, lineWidth: DmLine.hairline)
         )
-        .clipShape(RoundedRectangle(cornerRadius: DmRadius.r6))
     }
 }
 
