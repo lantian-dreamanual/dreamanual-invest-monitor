@@ -54,6 +54,7 @@ extension Color {
 
 /// 圆角。用法：RoundedRectangle(cornerRadius: DmRadius.r8)
 enum DmRadius {
+    static let r4: CGFloat = 4
     static let r6: CGFloat = 6
     static let r8: CGFloat = 8
     static let r10: CGFloat = 10
