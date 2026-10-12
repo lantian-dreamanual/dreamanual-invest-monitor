@@ -281,8 +281,12 @@ struct IconButton: View {
 /// 通用开关：形态基准 42×24（2026-10-10 三端统一，与密码管理 `.switch` 同规格，
 /// video 同日从系统 Toggle 换成同构自绘）。轨道 Capsule：关态 `line-2`、
 /// 开态 `accent-fill`；滑块直径 20、行程 18、**两态都白**（2026-10-12 四端统一，
-/// 与 video / vault / NAS 同款）。
+/// 与 video / vault / NAS 同款）、带一档贴地投影 `DmShadow.knob`。
 /// 动效 `DmMotion.fast`；禁用沿用按钮口径 —— 原样整体压暗 0.5。
+///
+/// 投影是白滑块的主要辨识来源：深字端的开态轨道取 500 档亮色，压白的亮度对比
+/// 最低只有 1.91:1（yellow-500，见 design-system.md 第八节「开关」），靠这圈暗边
+/// 把滑块的轮廓从轨道上托出来。
 struct DmToggleStyle: ToggleStyle {
     @Environment(\.isEnabled) private var isEnabled
 
@@ -296,6 +300,8 @@ struct DmToggleStyle: ToggleStyle {
                         Circle()
                             .fill(Color.white)
                             .frame(width: 20, height: 20)
+                            // 贴地投影（`DmShadow.knob`）：白滑块压在亮色轨道上靠它托出轮廓。
+                            .dmShadowKnob()
                             .offset(
                                 x: configuration.isOn ? geo.size.width - 22 : 2,
                                 y: (geo.size.height - 20) / 2
