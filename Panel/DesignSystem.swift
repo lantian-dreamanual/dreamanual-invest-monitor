@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Combine
 
 // ============ 设计系统：共享组件 ============
 
@@ -119,12 +120,20 @@ struct MarketStatusBadge: View {
 /// 反馈「主色深档底+主色浅档字很难看」，对齐本 app 主按钮（黄底深字）。
 ///
 /// 未选中 = 透明 + 次要色文字。解决 nonactivatingPanel 下系统分段控件选中态变灰。
+///
+/// **失焦降级**（2026-10-12 接入）：面板留在屏幕上但不是 key 时，选中段从「亮实心 +
+/// 深字」切到「暗强调底 + 亮字」（`dmAccentSoft` + `dmAccent2`，实测 9.22:1）。
+/// 白字方案那条「字保持 on-accent」在本 app 只有 1.36:1、字会看不见 —— 深字方案的
+/// 降级必须连着字色一起换，见 design-system.md 第八节「深字方案两端的失焦降级」。
+/// 场景真实存在：面板 `hidesOnDeactivate = false` + `canJoinAllSpaces`，Cmd+Tab 或
+/// 切桌面时面板跟着走、但已不是 key（实测面板唤起后 8 秒内 key 保持稳定）。
 struct SegmentedTabs<T: Hashable>: View {
     let items: [T]
     @Binding var selection: T
     var label: (T) -> String
     var style: Style = .default
     @State private var hovered: T?
+    @State private var windowActive = true
 
     enum Style {
         case `default`      // 主 Tab：通栏等宽，段高控件档 28（容器 32）
@@ -141,7 +150,7 @@ struct SegmentedTabs<T: Hashable>: View {
                     Text(label(item))
                         .font(.system(size: DmText.t12, weight: selected ? .medium : .regular))
                         .foregroundColor(
-                            selected ? Color.dmOnAccent
+                            selected ? (windowActive ? Color.dmOnAccent : Color.dmAccent2)
                                      : (hovered == item ? Color.dmInk : Color.dmInk2)
                         )
                         .lineLimit(1)
@@ -150,7 +159,7 @@ struct SegmentedTabs<T: Hashable>: View {
                         .frame(height: style == .default ? DmControl.h28 : DmControl.h38)
                         .background(
                             RoundedRectangle(cornerRadius: DmRadius.r6)
-                                .fill(Color.dmAccentFill)
+                                .fill(windowActive ? Color.dmAccentFill : Color.dmAccentSoft)
                                 .opacity(selected ? 1 : 0)
                         )
                         .contentShape(Rectangle())
@@ -176,6 +185,14 @@ struct SegmentedTabs<T: Hashable>: View {
             RoundedRectangle(cornerRadius: DmRadius.r8)
                 .strokeBorder(Color.dmLine2, lineWidth: DmLine.hairline)
         )
+        // 窗口 key 状态：本进程只有状态栏面板一个窗口，不过滤 object 也能拿到正确的
+        // 通知来源（设计系统第八节「失焦降级」）。
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            windowActive = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in
+            windowActive = false
+        }
     }
 }
 
