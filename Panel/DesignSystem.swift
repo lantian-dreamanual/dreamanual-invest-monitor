@@ -280,8 +280,8 @@ struct IconButton: View {
 
 /// 通用开关：形态基准 42×24（2026-10-10 三端统一，与密码管理 `.switch` 同规格，
 /// video 同日从系统 Toggle 换成同构自绘）。轨道 Capsule：关态 `line-2`、
-/// 开态 `accent-fill`；滑块直径 20、行程 18。滑块颜色：invest 是唯一深字方案，
-/// 开态滑块取 `onAccent`（与主按钮深字同读）；关态滑块白色（与 vault / video 一致）。
+/// 开态 `accent-fill`；滑块直径 20、行程 18、**两态都白**（2026-10-12 四端统一，
+/// 与 video / vault / NAS 同款）。
 /// 动效 `DmMotion.fast`；禁用沿用按钮口径 —— 原样整体压暗 0.5。
 struct DmToggleStyle: ToggleStyle {
     @Environment(\.isEnabled) private var isEnabled
@@ -294,7 +294,7 @@ struct DmToggleStyle: ToggleStyle {
                 .overlay(
                     GeometryReader { geo in
                         Circle()
-                            .fill(configuration.isOn ? Color.dmOnAccent : Color.white)
+                            .fill(Color.white)
                             .frame(width: 20, height: 20)
                             .offset(
                                 x: configuration.isOn ? geo.size.width - 22 : 2,
