@@ -258,8 +258,29 @@ struct SettingsView: View {
                                 } label: {
                                     Text(controller.updateChecker.manualCheckStatus == .newVersion ? "下载更新" : "立即检查")
                                 }
-                                .buttonStyle(CompactButtonStyle())
+                                .buttonStyle(CompactButtonStyle(on: .card))
                                 .disabled(controller.updateChecker.isChecking)
+                            }
+                            .padding(.horizontal, DmSpace.s14)
+                            .padding(.vertical, DmSpace.s8)
+
+                            Divider().opacity(0.4)
+
+                            // 官网：指应用自己在官网上的页面（works 下单独一页），不指
+                            // 主站首页 —— 首页是作品集，指着它等于让用户再找一遍。
+                            HStack {
+                                Text("官网")
+                                    .font(.system(size: DmText.t13))
+                                Spacer()
+                                Button("dreamanual.com/works/invest-monitor.html") {
+                                    if let url = URL(string: "https://dreamanual.com/works/invest-monitor.html") {
+                                        NSWorkspace.shared.open(url)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                                .font(.system(size: DmText.t13))
+                                .foregroundColor(Color.dmAccent2)
+                                .help("在浏览器中打开应用页面")
                             }
                             .padding(.horizontal, DmSpace.s14)
                             .padding(.vertical, DmSpace.s8)
@@ -582,7 +603,7 @@ struct SettingsView: View {
                     Image(systemName: "plus")
                         .font(.system(size: DmText.t12))
                 }
-                .buttonStyle(CompactButtonStyle())
+                .buttonStyle(CompactButtonStyle(on: .card))
                 .help("添加\(label)")
             }
         case .notFound:
@@ -603,7 +624,7 @@ struct SettingsView: View {
                 } label: {
                     Text("仍要添加")
                 }
-                .buttonStyle(CompactButtonStyle())
+                .buttonStyle(CompactButtonStyle(on: .card))
                 .help("用代码作为名称添加")
             }
         }

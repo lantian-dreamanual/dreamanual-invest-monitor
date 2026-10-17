@@ -402,7 +402,15 @@ struct SecondaryButtonStyle: ButtonStyle {
 /// 面板内的小动作（「立即检查」「仍要添加」「选择…」）用它，取代系统
 /// `.bordered` + `.controlSize(.small)` —— 系统那档的描边与文字都不受令牌管，
 /// 深色下的边框是系统灰，与 `--line` 对不上。
+///
+/// `on:` 按落点分档（2026-10-17）：`.panel` 实底；`.card` 描边（透明底 +
+/// `line-2` 描边，悬停才填 `panel-3`）。设置卡（`SettingsCard`）是 `panel-2`，
+/// 卡面上的输入件已是 `panel-3` 实底 —— 按钮也做实底就与输入框同壳，只差
+/// 4px 高与 1 号字，读起来像同一控件的两种尺寸。实底＝可输入、描边＝可点。
 struct CompactButtonStyle: ButtonStyle {
+    /// 落点：`.panel` 主区 / 弹窗，`.card` 卡面（`SettingsCard`）。
+    var on: DmSurface = .panel
+
     @Environment(\.isEnabled) private var isEnabled
     @State private var isHovered = false
 
@@ -415,14 +423,22 @@ struct CompactButtonStyle: ButtonStyle {
             .frame(height: DmControl.h28)
             .background(
                 RoundedRectangle(cornerRadius: DmRadius.r6)
-                    .fill(isEnabled && isHovered ? Color.dmPanel3 : Color.dmPanel2)
+                    .fill(fill)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: DmRadius.r6)
-                    .strokeBorder(Color.dmLine, lineWidth: DmLine.base)
+                    .strokeBorder(on == .panel ? Color.dmLine : Color.dmLine2,
+                                  lineWidth: DmLine.base)
             )
             .opacity(opacity(configuration))
             .onHover { isHovered = $0 }
+    }
+
+    private var fill: Color {
+        switch on {
+        case .panel: return isEnabled && isHovered ? Color.dmPanel3 : Color.dmPanel2
+        case .card: return isEnabled && isHovered ? Color.dmPanel3 : Color.clear
+        }
     }
 
     private var foreground: Color {
