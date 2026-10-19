@@ -471,7 +471,6 @@ final class MenuBarController: NSObject, ObservableObject {
         // 此前五路 async let 共用一个 try，任一路失败就整块跳到 catch —— 基金明明
         // 取到了也被一起放弃，面板只剩一句「（已显示上次数据）」，看起来像全网都挂了。
         var failed: [String] = []
-        var hasDataError = false
         var goldOK = false
         var sectorOK = false
 
@@ -481,7 +480,6 @@ final class MenuBarController: NSObject, ObservableObject {
             goldOK = true
         } catch {
             failed.append("黄金")
-            if let e = error as? FetchError, case .invalidData = e { hasDataError = true }
         }
         do {
             self.goldTrendData = try await sectorService.fetchGoldTrends()
@@ -501,7 +499,6 @@ final class MenuBarController: NSObject, ObservableObject {
             sectorOK = true
         } catch {
             failed.append("板块")
-            if let e = error as? FetchError, case .invalidData = e { hasDataError = true }
         }
 
         // 所有板块指数（Tab 快切用）：与当前板块各算各的，失败不回退已取到的当前板块
@@ -526,13 +523,13 @@ final class MenuBarController: NSObject, ObservableObject {
             self.errorMessage = nil
         } else {
             // 一句话说清三件事：哪几块没拿到、现在显示的是什么、会不会自愈。
-            // 主面板只有一行 11 号字，族级的原因（无行情 / 数据异常）收进结论句。
+            // 没抓到与抓到的数据没法用，对用户是同一件事：界面这次没更新、会自动重试。
+            // 原因留在数据层，提示条只给结论 —— 此前写法分出「数据异常」一支，
+            // 既露了内部判定，还漏掉「稍后自动重试」，与另一支口径不一致。
             var names = failed
             if names.contains("黄金") { names.removeAll { $0 == "黄金分时" } }
             let label = names.joined(separator: "、")
-            self.errorMessage = hasDataError
-                ? "\(label)数据异常，显示的是上次数据"
-                : "\(label)没更新，显示的是上次数据，稍后自动重试"
+            self.errorMessage = "\(label)没更新，显示的是上次数据，稍后自动重试"
         }
         self.updateStatusTitle()
 
