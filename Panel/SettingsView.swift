@@ -256,7 +256,7 @@ struct SettingsView: View {
                                         controller.updateChecker.manualCheck()
                                     }
                                 } label: {
-                                    Text(controller.updateChecker.manualCheckStatus == .newVersion ? "下载更新" : "立即检查")
+                                    Text(controller.updateChecker.manualCheckStatus == .newVersion ? "前往下载" : "立即检查")
                                 }
                                 .buttonStyle(CompactButtonStyle(on: .card))
                                 .disabled(controller.updateChecker.isChecking)
@@ -268,42 +268,23 @@ struct SettingsView: View {
 
                             // 官网：指应用自己在官网上的页面（works 下单独一页），不指
                             // 主站首页 —— 首页是作品集，指着它等于让用户再找一遍。
-                            HStack {
-                                Text("官网")
-                                    .font(.system(size: DmText.t13))
-                                Spacer()
-                                Button("dreamanual.com/works/invest-monitor.html") {
-                                    if let url = URL(string: "https://dreamanual.com/works/invest-monitor.html") {
-                                        NSWorkspace.shared.open(url)
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                                .font(.system(size: DmText.t13))
-                                .foregroundColor(Color.dmAccent2)
-                                .help("在浏览器中打开应用页面")
-                            }
-                            .padding(.horizontal, DmSpace.s14)
-                            .padding(.vertical, DmSpace.s8)
+                            // 整行单动作：完整网址收进悬停提示，行尾外链图标（三端同款）
+                            // 表示「点整行会跳出去」。
+                            SiteLinkRow(
+                                urlString: "https://dreamanual.com/works/invest-monitor.html",
+                                help: "在浏览器中打开应用页面（dreamanual.com/works/invest-monitor.html）"
+                            )
 
                             Divider().opacity(0.4)
 
-                            // 赞赏
-                            Button {
-                                if let url = URL(string: "https://afdian.com/a/wuyifa001") {
-                                    NSWorkspace.shared.open(url)
-                                }
-                            } label: {
-                                HStack(spacing: DmSpace.s4) {
-                                    LucideIcon("coffee", size: DmIcon.i14)
-                                    Text("请我喝杯咖啡")
-                                        .font(.system(size: DmText.t13))
-                                    Spacer()
-                                }
-                                .foregroundColor(Color.dmAccent)
-                            }
-                            .buttonStyle(.plain)
-                            .padding(.horizontal, DmSpace.s14)
-                            .padding(.vertical, DmSpace.s8)
+                            // 赞赏：整行链接行（与官网行同一组件、同一悬停形态）
+                            SiteLinkRow(
+                                urlString: "https://afdian.com/a/wuyifa001",
+                                help: "在浏览器中打开赞赏页面（afdian.com/a/wuyifa001）",
+                                title: "请我喝杯咖啡",
+                                leadingIcon: "coffee",
+                                tinted: true
+                            )
                         }
                     }
                 }
@@ -329,7 +310,7 @@ struct SettingsView: View {
                                 HStack(spacing: DmSpace.s6) {
                                     LucideIcon("warning", size: DmIcon.i12)
                                         .foregroundColor(Color.dmWarn)
-                                    Text("\(controller.configStore.repairedCount) 项配置无法读取，已重置")
+                                    Text("\(controller.configStore.repairedCount) 项配置无法读取，已恢复默认")
                                         .font(.system(size: DmText.t12))
                                         .foregroundColor(Color.dmWarn)
                                     Spacer()
@@ -453,7 +434,7 @@ struct SettingsView: View {
         guard !code.isEmpty else { return }
         // 检查重复
         guard !controller.configStore.config.sectors.contains(where: { $0.code == code }) else {
-            message = "该板块已添加"
+            message = "板块已在自选里"
             return
         }
         // 优先用识别到的名称，识别失败则用代码作为名称
@@ -496,7 +477,7 @@ struct SettingsView: View {
         guard !code.isEmpty else { return }
         // 检查重复
         guard !controller.configStore.config.funds.contains(where: { $0.code == code }) else {
-            message = "该基金已添加"
+            message = "基金已在自选里"
             return
         }
         let name: String
@@ -519,7 +500,7 @@ struct SettingsView: View {
     private var sectorAddRow: some View {
         VStack(spacing: DmSpace.s6) {
             HStack(spacing: DmSpace.s8) {
-                FormTextField(placeholder: "板块代码 (BK0475)", text: $newSectorCode, surface: .card, compact: true)
+                FormTextField(placeholder: "板块代码，如 BK0475", text: $newSectorCode, surface: .card, compact: true)
                     .onSubmit { lookupSector() }
                 searchButton(
                     code: newSectorCode,
@@ -535,7 +516,7 @@ struct SettingsView: View {
     private var fundAddRow: some View {
         VStack(spacing: DmSpace.s6) {
             HStack(spacing: DmSpace.s8) {
-                FormTextField(placeholder: "基金代码 (161725)", text: $newFundCode, surface: .card, compact: true)
+                FormTextField(placeholder: "基金代码，如 161725", text: $newFundCode, surface: .card, compact: true)
                     .onSubmit { lookupFund() }
                 searchButton(
                     code: newFundCode,
@@ -570,7 +551,7 @@ struct SettingsView: View {
         .disabled(trimmed.isEmpty || isSearching)
         .rotationEffect(isSearching ? .degrees(360) : .zero)
         .animation(isSearching ? .linear(duration: 1).repeatForever(autoreverses: false) : .easeInOut(duration: 0.2), value: isSearching)
-        .help("查询名称")
+        .help("按代码查询名称")
     }
     @ViewBuilder
     private func lookupRow(state: LookupState, label: String) -> some View {
@@ -610,7 +591,7 @@ struct SettingsView: View {
             HStack(spacing: DmSpace.s4) {
                     LucideIcon("warning", size: DmIcon.i10)
                     .foregroundColor(Color.dmWarn)
-                Text("未找到该\(label)，请检查代码")
+                Text("未找到该\(label)，请确认代码")
                     .font(.system(size: DmText.t11))
                     .foregroundColor(Color.dmInk2)
                 Spacer()
@@ -628,5 +609,59 @@ struct SettingsView: View {
                 .help("用代码作为名称添加")
             }
         }
+    }
+}
+
+/// 设置页整行链接行（官网 / 赞赏）：整行单动作 —— 点哪儿都是打开同一个页面。
+/// 悬停 = 卡内相邻一档：整行底抬 panel-3（r6 内嵌高亮），行尾外链图标
+/// （square-arrow-out-up-right，三端同款）表示「点整行会跳出去」。
+/// 完整网址收进悬停提示 —— 原先域名全文铺在行尾，是整行最长的元素。
+struct SiteLinkRow: View {
+    let urlString: String
+    let help: String
+    /// 行首文案，默认「官网」
+    var title: String = "官网"
+    /// 行首图标（赞赏行的咖啡杯）；nil = 无图标的中性行
+    var leadingIcon: String? = nil
+    /// 常亮强调态（赞赏行）：字与图标常态 accent，悬停提 accent-2
+    /// —— 黄族 accent-2 压悬停底 panel-3 有 6.59，够 AA。
+    var tinted: Bool = false
+
+    @State private var hovered = false
+
+    var body: some View {
+        Button {
+            if let url = URL(string: urlString) {
+                NSWorkspace.shared.open(url)
+            }
+        } label: {
+            HStack {
+                if let leadingIcon {
+                    HStack(spacing: DmSpace.s4) {
+                        LucideIcon(leadingIcon, size: DmIcon.i14)
+                        Text(title)
+                            .font(.system(size: DmText.t13))
+                    }
+                    .foregroundColor(hovered ? Color.dmAccent2 : Color.dmAccent)
+                } else {
+                    Text(title)
+                        .font(.system(size: DmText.t13))
+                        .foregroundColor(Color.dmInk)
+                }
+                Spacer()
+                LucideIcon("square-arrow-out-up-right", size: DmIcon.i14)
+                    .foregroundColor(hovered ? Color.dmAccent2 : Color.dmInk3)
+            }
+            .padding(.horizontal, DmSpace.s14)
+            .padding(.vertical, DmSpace.s8)
+            .background(
+                RoundedRectangle(cornerRadius: DmRadius.r6)
+                    .fill(hovered ? Color.dmPanel3 : Color.clear)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovered = $0 }
+        .help(help)
     }
 }

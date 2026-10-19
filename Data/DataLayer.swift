@@ -890,8 +890,8 @@ enum Format {
 
     /// 成交额（元）→ 亿/万 缩写
     static func amount(_ v: Double) -> String {
-        if v >= 1e8 { return String(format: "%.1f亿", v / 1e8) }
-        if v >= 1e4 { return String(format: "%.0f万", v / 1e4) }
+        if v >= 1e8 { return String(format: "%.1f 亿", v / 1e8) }
+        if v >= 1e4 { return String(format: "%.0f 万", v / 1e4) }
         return String(format: "%.0f", v)
     }
 }

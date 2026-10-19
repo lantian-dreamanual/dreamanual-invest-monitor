@@ -470,7 +470,8 @@ final class MenuBarController: NSObject, ObservableObject {
         // 每个族各自降级：一族抓不到只影响它自己。
         // 此前五路 async let 共用一个 try，任一路失败就整块跳到 catch —— 基金明明
         // 取到了也被一起放弃，面板只剩一句「（已显示上次数据）」，看起来像全网都挂了。
-        var failures: [String] = []
+        var failed: [String] = []
+        var hasDataError = false
         var goldOK = false
         var sectorOK = false
 
@@ -479,12 +480,13 @@ final class MenuBarController: NSObject, ObservableObject {
             self.gold = try await service.fetch()
             goldOK = true
         } catch {
-            failures.append("黄金 \(Self.failureLabel(error))")
+            failed.append("黄金")
+            if let e = error as? FetchError, case .invalidData = e { hasDataError = true }
         }
         do {
             self.goldTrendData = try await sectorService.fetchGoldTrends()
         } catch {
-            failures.append("黄金分时 \(Self.failureLabel(error))")
+            failed.append("黄金分时")
         }
 
         // 板块族：指数 + 成分股 + 分时线（同一族的三个面，任一失败按该族没拿到算）
@@ -498,7 +500,8 @@ final class MenuBarController: NSObject, ObservableObject {
             self.trendData = td
             sectorOK = true
         } catch {
-            failures.append("板块 \(Self.failureLabel(error))")
+            failed.append("板块")
+            if let e = error as? FetchError, case .invalidData = e { hasDataError = true }
         }
 
         // 所有板块指数（Tab 快切用）：与当前板块各算各的，失败不回退已取到的当前板块
@@ -518,11 +521,18 @@ final class MenuBarController: NSObject, ObservableObject {
         // M4 基金：净值 + 重仓 + 实时行情估算
         let fundOK = await self.refreshFunds()
 
-        if failures.isEmpty {
+        if failed.isEmpty {
             self.lastUpdate = Date()
             self.errorMessage = nil
         } else {
-            self.errorMessage = failures.joined(separator: "；") + "（已显示上次数据）"
+            // 一句话说清三件事：哪几块没拿到、现在显示的是什么、会不会自愈。
+            // 主面板只有一行 11 号字，族级的原因（无行情 / 数据异常）收进结论句。
+            var names = failed
+            if names.contains("黄金") { names.removeAll { $0 == "黄金分时" } }
+            let label = names.joined(separator: "、")
+            self.errorMessage = hasDataError
+                ? "\(label)数据异常，显示的是上次数据"
+                : "\(label)没更新，显示的是上次数据，稍后自动重试"
         }
         self.updateStatusTitle()
 
@@ -544,17 +554,6 @@ final class MenuBarController: NSObject, ObservableObject {
         ))
     }
 
-    /// 族级失败的简短文案。
-    /// 「无行情」＝这一轮没抓到（下一轮会自愈）；「数据异常」＝抓到了但解析不了（真 bug）。
-    /// 面板上按族列出，用户一眼能看出是哪一块坏了，而不是笼统一句「更新失败」。
-    private static func failureLabel(_ error: Error) -> String {
-        guard let e = error as? FetchError else { return "更新失败" }
-        switch e {
-        case .allSourcesFailed, .noConnection, .timeout, .badResponse: return "无行情"
-        case .invalidData: return "数据异常"
-        }
-        }
-
     /// 当前板块代码
     private var currentSector: String {
         currentSectorCode
@@ -574,7 +573,7 @@ final class MenuBarController: NSObject, ObservableObject {
             // 配了基金却一条都没解析出来 → 按抓取失败处理，
             // 否则该族规则会被当成「有数据」而漏掉「无行情」留痕
             if !configStore.config.funds.isEmpty && details.isEmpty {
-                self.fundErrorMessage = "基金数据解析为空"
+                self.fundErrorMessage = "基金数据获取失败，稍后自动重试"
                 return false
             }
             // 合并所有重仓股，去重
@@ -614,12 +613,12 @@ final class MenuBarController: NSObject, ObservableObject {
             self.fundStockChanges = changes
             self.fundErrorMessage = nil
             return true
-        } catch let error as FetchError {
-            self.fundErrorMessage = "基金数据\(error.localizedDescription)"
+        } catch is FetchError {
+            self.fundErrorMessage = "基金数据获取失败，稍后自动重试"
             // 基金失败不阻塞主流程，保留旧数据
             return false
         } catch {
-            self.fundErrorMessage = "基金数据更新失败"
+            self.fundErrorMessage = "基金数据获取失败，稍后自动重试"
             return false
         }
     }
@@ -658,7 +657,7 @@ final class MenuBarController: NSObject, ObservableObject {
             self.trendData = td
         } catch {
             // 板块切换失败保留旧数据，不阻塞主流程
-            self.errorMessage = "板块刷新失败（已显示上次数据）"
+            self.errorMessage = "板块没更新，显示的是上次数据，稍后自动重试"
         }
     }
 
@@ -723,7 +722,7 @@ final class MenuBarController: NSObject, ObservableObject {
             switch ev.state {
             case .counting:
                 return AlertRowState(kind: .counting,
-                                     text: "第 \(ev.days)/\(rule.effectiveConfirmDays) 天")
+                                     text: "已连续 \(ev.days)/\(rule.effectiveConfirmDays) 天")
             case .confirmed:
                 return AlertRowState(kind: .confirmed, text: "连续 \(ev.days) 天")
             case .idle:
@@ -731,12 +730,12 @@ final class MenuBarController: NSObject, ObservableObject {
             }
         }
         if unjudgedRules[rule.id] != nil {
-            return AlertRowState(kind: .dead, text: "未生效 · 无行情")
+            return AlertRowState(kind: .dead, text: "待判定 · 无行情")
         }
         if let ev = alertEvents[rule.id] {
             return AlertRowState(kind: .last, text: "最近判定 \(ev.pdate)")
         }
-        return AlertRowState(kind: .none, text: rule.label)
+        return AlertRowState(kind: .none, text: "尚未判定")
     }
 
     /// 无判定价留痕与自愈

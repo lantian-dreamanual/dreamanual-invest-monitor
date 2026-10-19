@@ -201,6 +201,75 @@ struct SegmentedTabs<T: Hashable>: View {
     }
 }
 
+/// 文本页签：页面级视图切换的形态（设计系统第八节「分段控件」两型分工）。
+///
+/// 无容器、无描边、无选中底色 —— 选中只靠三件事表达：`ink` 字 + semibold +
+/// 20×3 主色指示条（`Capsule`，高取 `DmLine.bold`）。NAS 助手 1.0.13 落地，
+/// 本 app 于 2026-10-18 移植。
+///
+/// 与 `SegmentedTabs` 的分工：页面级切换（本 app 只有主面板 黄金/板块/基金 一处）
+/// 用这个，表单与卡片内的紧凑互斥切换（弹窗里的标的类型/预警基准/方向）仍用容器
+/// 分段。同一个页面同一层级不混用。
+///
+/// **为什么不做失焦降级**：选中态里没有任何实底色块，`ink` 字压面板底在窗口 key 与
+/// 非 key 时都是同一读数，不需要像 `SegmentedTabs` 那样换一套降级色。
+struct DmTextTabs<Item: Hashable>: View {
+    let items: [Item]
+    let label: (Item) -> String
+    @Binding var selection: Item
+    /// 等宽：窄容器（本 app 面板 400 宽）里三项按内容宽会靠左聚成一坨、右侧空 200 多
+    /// 像素。开启后每格等分、指示条居中于各自那一格；宽卡片里维持默认的跟内容宽。
+    var fillsWidth: Bool = false
+    @State private var hovered: Item?
+
+    init(
+        _ items: [Item],
+        selection: Binding<Item>,
+        fillsWidth: Bool = false,
+        label: @escaping (Item) -> String
+    ) {
+        self.items = items
+        self._selection = selection
+        self.fillsWidth = fillsWidth
+        self.label = label
+    }
+
+    var body: some View {
+        HStack(spacing: DmSpace.s20) {
+            ForEach(items, id: \.self) { item in
+                let isSelected = item == selection
+                Button {
+                    selection = item
+                } label: {
+                    Text(label(item))
+                        .font(.system(size: DmText.t13, weight: isSelected ? .semibold : .regular))
+                        .lineLimit(1)
+                        .foregroundColor(isSelected || hovered == item ? Color.dmInk : Color.dmInk2)
+                        .frame(maxWidth: fillsWidth ? .infinity : nil)
+                        .frame(height: DmControl.h32)
+                        .overlay(alignment: .bottom) {
+                            if isSelected {
+                                Capsule()
+                                    .fill(Color.dmAccent)
+                                    .frame(width: 20, height: DmLine.bold)
+                                    .padding(.bottom, DmSpace.s2)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .onHover { isInside in
+                    if isInside {
+                        hovered = item
+                    } else if hovered == item {
+                        hovered = nil
+                    }
+                }
+            }
+        }
+    }
+}
+
 // ============ 设计系统：自定义图标 ============
 
 /// Lucide 线性图标（PNG template 模式）。
@@ -907,7 +976,7 @@ struct PriceHeader: View {
     let marketStatus: MarketStatus?      // nil = 不显示状态标签
     let price: String               // 格式化后的价格文本
     let changePct: Double           // 涨跌幅 %
-    let secondary: String?          // 可选次要信息，如 "成交额 12.3亿"
+    let secondary: String?          // 可选次要信息，如 "成交额 12.3 亿"
     /// 行情**自身**时间（f124）。区别于右上角的刷新倒计时 ——
     /// 那个说的是「下一次什么时候抓」，这个说的是「这份数是什么时候的」
     var quoteAt: Date? = nil

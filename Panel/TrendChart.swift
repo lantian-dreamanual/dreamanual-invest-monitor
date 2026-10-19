@@ -66,7 +66,7 @@ struct TrendChart: View {
                 // 数据截止时间提示
                 HStack(spacing: 0) {
                     Spacer()
-                    Text("最后更新 \(lastUpdateText)")
+                    Text("截至 \(lastUpdateText)")
                         .font(.system(size: DmText.t10))
                         .foregroundColor(Color.dmInk3)
                 }

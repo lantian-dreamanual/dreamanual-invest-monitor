@@ -78,8 +78,8 @@ enum AlertResetInput {
         // 触发价本身还没填对时不做方向判断 —— 判据不成立，报错只会误导
         guard let th = Double(thresholdText.trimmingCharacters(in: .whitespaces)), th > 0 else { return nil }
         switch direction {
-        case .below: return v > th ? nil : "跌破线的复位价要在触发价上方"
-        case .above: return v < th ? nil : "涨破线的复位价要在触发价下方"
+        case .below: return v > th ? nil : "止损线的复位价要高于触发价"
+        case .above: return v < th ? nil : "止盈线的复位价要低于触发价"
         }
     }
 

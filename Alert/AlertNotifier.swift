@@ -5,8 +5,12 @@ import UserNotifications
 /// 本地通知发送器
 /// 优先使用 UserNotifications.framework；若 UN 通知无法显示（如 adhoc 签名开发阶段），
 /// 自动回退到 osascript display notification 确保通知可见。
-final class AlertNotifier: NSObject, UNUserNotificationCenterDelegate {
+final class AlertNotifier: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     static let shared = AlertNotifier()
+
+    /// 系统通知权限被用户关掉了。预警只能靠系统通知送达，
+    /// 关掉之后界面必须说出来 —— 否则用户以为规则坏了，实际一条都发不出去。
+    @Published var authorizationDenied = false
 
     /// 通知点击回调：传递规则 ID
     var onNotificationTap: ((String) -> Void)?
@@ -18,11 +22,22 @@ final class AlertNotifier: NSObject, UNUserNotificationCenterDelegate {
     private override init() {
         super.init()
         UNUserNotificationCenter.current().delegate = self
+        refreshAuthorization()
+    }
+
+    /// 读当前授权状态。用户可能在系统设置里改过，回前台时再读一次。
+    func refreshAuthorization() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                self.authorizationDenied = (settings.authorizationStatus == .denied)
+            }
+        }
     }
 
     /// 请求通知授权（alert + sound）
     func requestPermission() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            self.refreshAuthorization()
             if granted {
                 // 授权后发一条静默测试通知，检查是否真的能弹 banner
                 self.checkUNAvailability()

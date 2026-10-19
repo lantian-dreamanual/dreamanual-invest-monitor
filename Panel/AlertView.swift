@@ -26,6 +26,8 @@ struct AlertRowState {
 /// 预警规则列表（嵌入设置页卡片内）：按标的分组展示 + 增删 + 组折叠
 struct AlertRuleList: View {
     @ObservedObject var controller: MenuBarController
+    /// 通知权限状态跟着系统设置走，回前台要重读
+    @ObservedObject private var notifier = AlertNotifier.shared
     /// 折叠的组键（持久化）
     @AppStorage("com.dreamanual.investmonitor.CollapsedGroups") private var collapsedGroupsRaw = ""
 
@@ -33,8 +35,36 @@ struct AlertRuleList: View {
         Set(collapsedGroupsRaw.split(separator: ",").map(String.init))
     }
 
+    /// 全部规则都关着 —— 界面上只剩一列灰掉的开关，得用一句话说出来
+    private var allRulesOff: Bool {
+        !controller.alertConfig.rules.isEmpty
+            && controller.alertConfig.rules.allSatisfy { !$0.enabled }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
+            // 系统通知被关掉：预警一条也发不出去，先在这里说，并给一个出口
+            if notifier.authorizationDenied {
+                HStack(spacing: DmSpace.s6) {
+                    LucideIcon("bell-off", size: DmIcon.i12)
+                        .foregroundColor(Color.dmWarn)
+                    Text("系统通知已关闭，收不到提醒")
+                        .font(.system(size: DmText.t12))
+                        .foregroundColor(Color.dmWarn)
+                    Spacer()
+                    Button("打开系统设置") {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    .buttonStyle(CompactButtonStyle(on: .card))
+                }
+                .padding(.horizontal, DmSpace.s14)
+                .frame(height: DmControl.h38)
+                .background(Color.dmPanel2)
+                Divider().opacity(0.6)
+            }
+
             // 总开关行：全部规则一键启停，样式与单行开关一致
             if !controller.alertConfig.rules.isEmpty {
                 HStack(spacing: DmSpace.s6) {
@@ -45,6 +75,11 @@ struct AlertRuleList: View {
                         .font(.system(size: DmText.t13, weight: .semibold))
                         .foregroundColor(Color.dmInk)
                         .lineLimit(1)
+                    if allRulesOff {
+                        Text("已全部停用")
+                            .font(.system(size: DmText.t11))
+                            .foregroundColor(Color.dmInk3)
+                    }
                     Spacer()
                     Toggle("", isOn: Binding(
                         get: { !controller.alertConfig.rules.allSatisfy { !$0.enabled } },
@@ -85,6 +120,7 @@ struct AlertRuleList: View {
                 }
             }
         }
+        .onAppear { notifier.refreshAuthorization() }
     }
 
     // MARK: - 分组
@@ -225,13 +261,13 @@ struct AlertRuleRow: View {
                         .monospacedDigit()
                         .foregroundColor(rule.enabled ? Color.dmInk : Color.dmInk2)
                     if rule.effectiveConfirmDays > 1 {
-                        Text("确认 \(rule.effectiveConfirmDays) 日")
+                        Text("需 \(rule.effectiveConfirmDays) 日确认")
                             .font(.system(size: DmText.t10))
                             .foregroundColor(Color.dmInk2)
                     }
                     // 显式复位价必须露出来：否则它成了「看不见也改不掉」的隐形配置
                     if let rs = rule.resetThreshold {
-                        Text("复位 \(AlertFormat.value(rule, rs))")
+                        Text("复位价 \(AlertFormat.value(rule, rs))")
                             .font(.system(size: DmText.t10))
                             .foregroundColor(Color.dmInk2)
                     }
@@ -339,7 +375,7 @@ struct AddAlertSheet: View {
                     selection: $targetType,
                     label: { t in
                         switch t {
-                        case .goldCNY: return "金CNY"
+                        case .goldCNY: return "黄金"
                         case .sector: return "板块"
                         case .fund: return "基金"
                         }
@@ -430,7 +466,7 @@ struct AddAlertSheet: View {
                 HStack(spacing: DmSpace.s4) {
                     LucideIcon("info", size: DmIcon.i10)
                         .foregroundColor(Color.dmInk2)
-                    Text("确认天数：连续几个判定价日站在触发区内才提醒（1–10，默认 1）")
+                    Text("连续几天都满足条件才提醒，最多 10 天")
                         .font(.system(size: DmText.t10))
                         .foregroundColor(Color.dmInk2)
                 }
@@ -443,15 +479,15 @@ struct AddAlertSheet: View {
                     HStack(spacing: DmSpace.s4) {
                         LucideIcon(resetError == nil ? "info" : "warning", size: DmIcon.i10)
                             .foregroundColor(resetError == nil ? Color.dmInk2 : Color.dmDanger)
-                        Text(resetError ?? "留空按触发价 0.5% 自动留迟滞带")
+                        Text(resetError ?? "留空时，价格要回到触发价 0.5% 以外才算复位")
                             .font(.system(size: DmText.t10))
                             .foregroundColor(resetError == nil ? Color.dmInk2 : Color.dmDanger)
                     }
                 }
             }
 
-            FormSection("提醒文案") {
-                FormTextField(placeholder: "第1档止盈 · 建议卖1/3", text: $label)
+            FormSection("提醒内容") {
+                FormTextField(placeholder: "如：第1档止盈 · 建议卖1/3", text: $label)
             }
 
             },
@@ -557,7 +593,7 @@ struct EditAlertSheet: View {
                     selection: $targetType,
                     label: { t in
                         switch t {
-                        case .goldCNY: return "金CNY"
+                        case .goldCNY: return "黄金"
                         case .sector: return "板块"
                         case .fund: return "基金"
                         }
@@ -649,7 +685,7 @@ struct EditAlertSheet: View {
                 HStack(spacing: DmSpace.s4) {
                     LucideIcon("info", size: DmIcon.i10)
                         .foregroundColor(Color.dmInk2)
-                    Text("确认天数：连续几个判定价日站在触发区内才提醒（1–10，默认 1）")
+                    Text("连续几天都满足条件才提醒，最多 10 天")
                         .font(.system(size: DmText.t10))
                         .foregroundColor(Color.dmInk2)
                 }
@@ -662,15 +698,15 @@ struct EditAlertSheet: View {
                     HStack(spacing: DmSpace.s4) {
                         LucideIcon(resetError == nil ? "info" : "warning", size: DmIcon.i10)
                             .foregroundColor(resetError == nil ? Color.dmInk2 : Color.dmDanger)
-                        Text(resetError ?? "留空按触发价 0.5% 自动留迟滞带")
+                        Text(resetError ?? "留空时，价格要回到触发价 0.5% 以外才算复位")
                             .font(.system(size: DmText.t10))
                             .foregroundColor(resetError == nil ? Color.dmInk2 : Color.dmDanger)
                     }
                 }
             }
 
-            FormSection("提醒文案") {
-                FormTextField(placeholder: "第1档止盈 · 建议卖1/3", text: $label)
+            FormSection("提醒内容") {
+                FormTextField(placeholder: "如：第1档止盈 · 建议卖1/3", text: $label)
             }
 
             },

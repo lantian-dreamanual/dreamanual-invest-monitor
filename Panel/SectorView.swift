@@ -73,7 +73,7 @@ struct SectorView: View {
                     )
                 }
             }
-            .padding(.top, controller.configStore.config.sectors.count > 1 ? 0 : DmSpace.s14)
+            .padding(.top, controller.configStore.config.sectors.count > 1 ? 0 : DmSpace.s6)
             .padding(.horizontal, DmSpace.s14)
             .padding(.bottom, DmSpace.s14)
         }
@@ -87,7 +87,7 @@ struct SectorView: View {
             Text("名称").frame(width: 84, alignment: .leading)
             Spacer()
             Text("现价").frame(width: 62, alignment: .trailing)
-            Text("涨跌%").frame(width: 62, alignment: .trailing)
+            Text("涨跌幅").frame(width: 62, alignment: .trailing)
             Text("成交额").frame(width: 64, alignment: .trailing)
         }
         .font(.system(size: DmText.t12, weight: .medium))

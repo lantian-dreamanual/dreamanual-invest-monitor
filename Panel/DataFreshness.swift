@@ -28,7 +28,7 @@ enum DataFreshness {
     static func display(quoteAt: Date?, status: MarketStatus, now: Date = Date()) -> Display? {
         let inSession = (status == .trading || status == .delayed)
         guard let at = quoteAt else {
-            return inSession ? Display(text: "无行情时间", isStale: true) : nil
+            return inSession ? Display(text: "行情时间缺失", isStale: true) : nil
         }
         let stamp = Self.stamp(at)
         guard inSession else { return Display(text: "截至 \(stamp)", isStale: false) }

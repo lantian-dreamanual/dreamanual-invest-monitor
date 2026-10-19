@@ -46,7 +46,9 @@ struct FundView: View {
                             FundCard(fund: fund, changes: controller.fundStockChanges, marketStatus: controller.stockMarketStatus, defaultExpanded: fundCount == 1)
                         }
                     }
-                    .padding(DmSpace.s14)
+                    // 顶部只给 s6：与页签行的 s4 叠成 10pt 节奏，四边其余仍 s14
+                    .padding(.top, DmSpace.s6)
+                    .padding([.horizontal, .bottom], DmSpace.s14)
                 }
             }
         }
@@ -73,11 +75,9 @@ struct FundCard: View {
 
     private var canExpand: Bool { !fund.holdings.isEmpty }
 
-    /// 覆盖度文案：「前 10 大重仓行情覆盖 62%」（覆盖的对象是重仓的实时行情）
+    /// 覆盖度文案：「重仓股行情覆盖 62%」（覆盖的对象是这些重仓股的实时行情）
     private func coverageLabel(_ cov: Double) -> String {
-        let n = fund.holdings.count
-        let pct = Int(cov.rounded())
-        return n > 0 ? "前 \(n) 大重仓行情覆盖 \(pct)%" : "重仓行情覆盖 \(pct)%"
+        "重仓股行情覆盖 \(Int(cov.rounded()))%"
     }
 
     /// 覆盖度不足一半：估值数字置灰，让它不再被当成权威读数
@@ -164,7 +164,7 @@ struct FundCard: View {
             if isExpanded {
                 Divider().opacity(0.5)
                 if fund.holdings.isEmpty {
-                    Text("暂无重仓数据")
+                    Text("这只基金没有披露持仓")
                         .font(.system(size: DmText.t11))
                         .foregroundColor(Color.dmInk2)
                         .frame(maxWidth: .infinity)
@@ -225,7 +225,7 @@ struct FundCard: View {
                     .foregroundColor(Color.trend(pct))
                     .frame(width: 62, alignment: .trailing)
             } else {
-                Text("--")
+                Text("—")
                     .foregroundColor(Color.dmInk2)
                     .frame(width: 62, alignment: .trailing)
             }

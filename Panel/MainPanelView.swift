@@ -134,12 +134,16 @@ struct MainPanelView: View {
     // Tab 切换
     private var content: some View {
         VStack(spacing: 0) {
-            SegmentedTabs(items: Tab.allCases, selection: $tab) { t in
+            // 页面级切换走文本页签（无容器、无选中色块）；面板只有 400 宽，
+            // 三项按内容宽会靠左聚成一坨，开启等宽让每格等分。
+            DmTextTabs(Tab.allCases, selection: $tab, fillsWidth: true) { t in
                 t.rawValue
             }
             .padding(.horizontal, DmSpace.s16)
-            .padding(.top, DmSpace.s10)
-            .padding(.bottom, DmSpace.s8)
+            // 上 s6 / 下 s4：下边距只留一处源头，页面内容自带顶部 s6，
+            // 指示条到首卡 ≈ 10pt —— 原先 8 + 页面 s14 叠出 22pt 的大空隙
+            .padding(.top, DmSpace.s6)
+            .padding(.bottom, DmSpace.s4)
 
             // 板块页内多板块切换（仅板块 Tab 时显示，不占位）
             if tab == .cpo && controller.configStore.config.sectors.count > 1 {
@@ -213,7 +217,7 @@ struct UpdateBanner: View {
             Button {
                 if let url = URL(string: downloadUrl) { NSWorkspace.shared.open(url) }
             } label: {
-                Text("下载更新")
+                Text("前往下载")
             }
             .buttonStyle(PrimaryButtonStyle())
 
@@ -260,7 +264,9 @@ struct GoldView: View {
                         .padding(.top, 80)
                 }
             }
-            .padding(DmSpace.s14)
+            // 顶部只给 s6：与页签行的 s4 叠成 10pt 节奏，四边其余仍 s14
+            .padding(.top, DmSpace.s6)
+            .padding([.horizontal, .bottom], DmSpace.s14)
         }
         .frame(maxWidth: .infinity)
     }
