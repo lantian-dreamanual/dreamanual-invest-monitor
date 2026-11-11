@@ -20,6 +20,8 @@ extension Color {
     static let dmDangerInk = Color(red: 1.0, green: 0.6353, blue: 0.6353)  // #ffa2a2
     static let dmDangerInkStrong = Color(red: 1.0, green: 0.3922, blue: 0.4039)  // #ff6467
     static let dmDangerHover = Color(red: 0.5098, green: 0.0941, blue: 0.102)  // #82181a
+    static let dmDanger600 = Color(red: 0.9059, green: 0.0, blue: 0.0431)  // #e7000b
+    static let dmDanger700 = Color(red: 0.7569, green: 0.0, blue: 0.0275)  // #c10007
     static let dmOk = Color(red: 0.0, green: 0.7373, blue: 0.4902)  // #00bc7d
     static let dmOkSoft = Color(red: 0.0, green: 0.1725, blue: 0.1333)  // #002c22
     static let dmOkLine = Color(red: 0.0, green: 0.3765, blue: 0.2706)  // #006045
@@ -89,6 +91,7 @@ enum DmText {
     static let t20: CGFloat = 20
     static let t28: CGFloat = 28
     static let t34: CGFloat = 34
+    static let t44: CGFloat = 44
 }
 
 /// 图标尺寸。用法：LucideIcon("play", size: DmIcon.i16)
@@ -116,6 +119,7 @@ enum DmControl {
 enum DmLine {
     static let hairline: CGFloat = 0.5
     static let base: CGFloat = 1
+    static let sel: CGFloat = 2
     static let bold: CGFloat = 3
 }
 
