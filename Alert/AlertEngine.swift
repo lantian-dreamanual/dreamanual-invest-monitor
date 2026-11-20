@@ -72,13 +72,13 @@ struct AlertNotice {
 
     /// 标题必须带天数：通知列表只显示标题，缺了天数就判断不出紧迫程度。
     /// 天数也正好让「每天一条」不再是复读。
-    var title: String { "\(rule.targetName) · \(lineLabel) · 连续 \(days) 天" }
+    var title: String { "\(rule.targetName)，\(lineLabel)，连续 \(days) 天" }
 
     /// 正文三段：当前值与持续天数 → 说明 → 同时命中
     var body: String {
         var lines: [String] = []
         let pctText = changePct.map { String(format: "（%+.2f%%）", $0) } ?? ""
-        lines.append("当前值 \(AlertFormat.value(rule, price))\(pctText) · "
+        lines.append("当前值 \(AlertFormat.value(rule, price))\(pctText)，"
                      + "\(lineLabel) 已持续 \(days) 天")
         if !rule.label.isEmpty { lines.append(rule.label) }
         if !rest.isEmpty {

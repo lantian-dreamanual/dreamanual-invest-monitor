@@ -30,7 +30,7 @@ struct AlertRule: Codable, Identifiable, Hashable {
     var targetName: String     // 显示名
     var direction: AlertDirection
     var threshold: Double       // 阈值
-    var label: String           // 提醒文案，如「第1档止盈 · 建议卖1/3」
+    var label: String           // 提醒文案，如“第1档止盈，建议卖1/3”
     var enabled: Bool           // 单条规则开关
     /// 运行态：本进程内是否已推送过。界面即时显示用，**结论以事件表为准**
     var triggered: Bool

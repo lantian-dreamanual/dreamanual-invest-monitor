@@ -76,27 +76,27 @@ final class AlertConfig: ObservableObject {
     static let defaultRules: [AlertRule] = [
         AlertRule(
             id: "gold-tp1", targetType: .goldCNY, targetCode: "", targetName: "黄金(CNY/g)",
-            direction: .above, threshold: 700, label: "第1档止盈 · 建议卖1/3",
+            direction: .above, threshold: 700, label: "第1档止盈，建议卖1/3",
             enabled: true, triggered: false, triggeredAt: nil
         ),
         AlertRule(
             id: "gold-tp2", targetType: .goldCNY, targetCode: "", targetName: "黄金(CNY/g)",
-            direction: .above, threshold: 750, label: "第2档止盈 · 建议卖1/3",
+            direction: .above, threshold: 750, label: "第2档止盈，建议卖1/3",
             enabled: true, triggered: false, triggeredAt: nil
         ),
         AlertRule(
             id: "gold-tp3", targetType: .goldCNY, targetCode: "", targetName: "黄金(CNY/g)",
-            direction: .above, threshold: 800, label: "第3档止盈 · 建议清仓",
+            direction: .above, threshold: 800, label: "第3档止盈，建议清仓",
             enabled: true, triggered: false, triggeredAt: nil
         ),
         AlertRule(
             id: "gold-sl1", targetType: .goldCNY, targetCode: "", targetName: "黄金(CNY/g)",
-            direction: .below, threshold: 600, label: "第1档止损 · 建议减半",
+            direction: .below, threshold: 600, label: "第1档止损，建议减半",
             enabled: true, triggered: false, triggeredAt: nil
         ),
         AlertRule(
             id: "gold-sl2", targetType: .goldCNY, targetCode: "", targetName: "黄金(CNY/g)",
-            direction: .below, threshold: 550, label: "第2档止损 · 建议清仓",
+            direction: .below, threshold: 550, label: "第2档止损，建议清仓",
             enabled: true, triggered: false, triggeredAt: nil
         ),
     ]

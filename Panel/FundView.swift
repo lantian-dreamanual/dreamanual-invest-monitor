@@ -18,7 +18,7 @@ struct FundView: View {
                         Text("暂未添加基金")
                             .font(.system(size: DmText.t13))
                             .foregroundColor(Color.dmInk2)
-                        Text("在设置页「自选基金」中添加")
+                        Text("在设置页“自选基金”中添加")
                             .font(.system(size: DmText.t11))
                             .foregroundColor(Color.dmInk3)
                         Spacer()

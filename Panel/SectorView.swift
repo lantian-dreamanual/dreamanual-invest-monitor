@@ -18,7 +18,7 @@ struct SectorView: View {
                         Text("暂未添加板块")
                             .font(.system(size: DmText.t13))
                             .foregroundColor(Color.dmInk2)
-                        Text("在设置页「自选板块」中添加")
+                        Text("在设置页“自选板块”中添加")
                             .font(.system(size: DmText.t11))
                             .foregroundColor(Color.dmInk3)
                     }

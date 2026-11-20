@@ -62,7 +62,7 @@ struct SettingsView: View {
                                 Divider().opacity(0.4)
                             }
                             if controller.configStore.config.sectors.isEmpty {
-                                Text("暂无板块，点击 + 添加")
+                                Text("还没有板块，点击 + 添加")
                                     .font(.system(size: DmText.t12))
                                     .foregroundColor(Color.dmInk2)
                                     .frame(maxWidth: .infinity)
@@ -122,7 +122,7 @@ struct SettingsView: View {
                                 Divider().opacity(0.4)
                             }
                             if controller.configStore.config.funds.isEmpty {
-                                Text("暂无基金，点击 + 添加")
+                                Text("还没有基金，点击 + 添加")
                                     .font(.system(size: DmText.t12))
                                     .foregroundColor(Color.dmInk2)
                                     .frame(maxWidth: .infinity)
@@ -310,7 +310,7 @@ struct SettingsView: View {
                                 HStack(spacing: DmSpace.s6) {
                                     LucideIcon("warning", size: DmIcon.i12)
                                         .foregroundColor(Color.dmWarn)
-                                    Text("\(controller.configStore.repairedCount) 项配置无法读取，已恢复默认")
+                                    Text("\(controller.configStore.repairedCount) 项配置读取失败，已恢复默认")
                                         .font(.system(size: DmText.t12))
                                         .foregroundColor(Color.dmWarn)
                                     Spacer()

@@ -526,16 +526,25 @@ struct CompactButtonStyle: ButtonStyle {
 
 /// 表单标签：12pt secondary + medium，与控件间距 6pt（设计系统第八节）。
 /// 原先是 regular，与正文同重，标签与提示文字分不开。
+/// 必填项右挂星号（写作规范 10.5）：与密码管理 .req 同形态，深色底取 danger-ink。
 struct FormLabel: View {
     let text: String
+    var required: Bool = false
 
     var body: some View {
-        Text(text)
-            .font(.system(size: DmText.t12, weight: .medium))
-            .foregroundColor(Color.dmInk2)
-            // 区块标签是单行的（「阈值」「确认天数」），挤了也宁可溢出不折行 ——
-            // 折成两行的标签在表单里像出了错。
-            .lineLimit(1)
+        HStack(spacing: DmSpace.s2) {
+            Text(text)
+                .font(.system(size: DmText.t12, weight: .medium))
+                .foregroundColor(Color.dmInk2)
+                // 区块标签是单行的（「阈值」「确认天数」），挤了也宁可溢出不折行 ——
+                // 折成两行的标签在表单里像出了错。
+                .lineLimit(1)
+            if required {
+                Text("*")
+                    .font(.system(size: DmText.t12, weight: .medium))
+                    .foregroundColor(Color.dmDangerInk)
+            }
+        }
     }
 }
 
@@ -611,16 +620,18 @@ struct FormTextField: View {
 /// 表单区块：标签 + 内容垂直排列，标签到内容间距 8pt
 struct FormSection<Content: View>: View {
     let label: String
+    var required: Bool = false
     let content: Content
 
-    init(_ label: String, @ViewBuilder content: () -> Content) {
+    init(_ label: String, required: Bool = false, @ViewBuilder content: () -> Content) {
         self.label = label
+        self.required = required
         self.content = content()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DmSpace.s8) {
-            FormLabel(text: label)
+            FormLabel(text: label, required: required)
             content
         }
     }
@@ -688,14 +699,16 @@ struct SettingsCard<Content: View>: View {
 ///
 /// 为什么自绘：面板是 `.nonactivatingPanel`，SwiftUI `Menu`、`NSMenu.popUp`、
 /// `NSPopUpButton`（performClick）三条路实测都弹不出来（2026-10-09 离屏 +
-/// 真机三重证实）。浮层挂在面板根部，与 `DmModal` 同一挂法 —— 面板里
-/// SwiftUI 按钮与手势本来就可用，这条路是确定的。
+/// 真机三重证实）。浮层挂独立浮窗（`DropdownWindowController`，2026-11-20
+/// 与 NAS 助手右键菜单同一方案）—— 菜单可越出面板边界，不再被容器裁切。
 ///
 /// 视频下载虽是普通窗口（系统菜单能弹），两端保持同一实现，见那边同名组件。
 @MainActor
 final class DropdownModel: ObservableObject {
     struct Request {
-        /// 触发器在屏幕坐标里的 frame（SwiftUI `.global`）
+        /// 浮窗同步层的重摆记号（开一次是一份新请求；内容不变不重摆）。
+        let id = UUID()
+        /// 触发器在**屏幕坐标**里的 frame（AppKit 左下原点，NSView 链路直读）。
         let anchor: CGRect
         /// 菜单卡不窄于触发器
         let minWidth: CGFloat
@@ -810,7 +823,7 @@ struct DmMenuPicker<Value: Hashable>: View {
         .contentShape(Rectangle())
         .onHover { isHovered = $0 }
         .onTapGesture { open() }
-        .dmGlobalFrame { triggerFrame = $0 }
+        .background(DmScreenAnchorReader { triggerFrame = $0 })
     }
 
     private var trigger: some View {
@@ -844,45 +857,106 @@ struct DmMenuPicker<Value: Hashable>: View {
     }
 }
 
-/// 面板根部的下拉浮层：透明遮罩（点任意处关）+ 菜单卡（panel-2 底、
-/// line-2 发丝描边、r-10、modal 阴影；选中行勾勾 accent、悬停行 accent-soft 底）。
-/// 挂在视图树根部（`.overlay`），盖住模态在内的全部内容 —— 弹窗里的
-/// 选择标的也走它。
+/// 面板根部的下拉浮层同步层：开合随 `model.current` 走，菜单卡挂进独立浮窗
+///（`DropdownWindowController`）。菜单不归面板装 —— 贴着面板边缘也完整可见
+///（2026-11-20 与 NAS 助手右键菜单同一方案）。挂根部本身不占画面。
 struct DmDropdownOverlay: View {
     @EnvironmentObject private var model: DropdownModel
 
     var body: some View {
-        GeometryReader { geo in
-            let rootFrame = geo.frame(in: .global)
-            ZStack(alignment: .topLeading) {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture { model.dismiss() }
-                    // 遮罩只在菜单打开时可命中：始终可命中的透明层会把
-                    // 整个面板的点击吃掉（2026-10-09 用户实测「面板全点不动」）
-                    .allowsHitTesting(model.current != nil)
-                if let req = model.current {
-                    menuCard(req, container: geo.size, rootFrame: rootFrame)
+        Color.clear
+            .frame(width: 0, height: 0)
+            .onChange(of: model.current?.id) { _, id in
+                if let id, let req = model.current {
+                    DropdownWindowController.shared.show(model: model, request: req)
+                } else {
+                    DropdownWindowController.shared.close()
                 }
             }
-        }
+    }
+}
+
+/// 触发器屏幕坐标读取（AppKit 左下原点）：SwiftUI `.global` 在不同系统上
+/// 口径不一（窗口相对 / 屏幕绝对都有人踩过），浮窗摆位要的是屏幕坐标，
+/// 直接从 NSView 链路 `convertToScreen` 拿，不吃跨版本歧义。
+struct DmScreenAnchorReader: NSViewRepresentable {
+    var onFrame: (CGRect) -> Void
+
+    func makeNSView(context: Context) -> AnchorView {
+        let view = AnchorView()
+        view.onFrame = onFrame
+        return view
     }
 
-    private func menuCard(_ req: DropdownModel.Request, container: CGSize, rootFrame: CGRect) -> some View {
-        let rowHeight = DmControl.h28
-        let cardHeight = CGFloat(req.labels.count) * rowHeight + DmSpace.s8
-        // 与触发器同宽优先（open() 的下限与本处同为 132）：宽度不一致读作两个控件
-        let cardWidth = max(req.minWidth, 132)
-        // 屏幕坐标 → 面板本地坐标
-        let anchor = req.anchor.offsetBy(dx: -rootFrame.minX, dy: -rootFrame.minY)
-        let belowY = anchor.maxY + DmSpace.s4
-        let spaceBelow = container.height - belowY - DmSpace.s8
-        // 下方放不下且上方更宽裕时朝上开
-        let openUp = spaceBelow < cardHeight && (anchor.minY - DmSpace.s4) > spaceBelow
-        let y = openUp ? anchor.minY - DmSpace.s4 - cardHeight : belowY
-        let x = min(max(anchor.minX, DmSpace.s8), container.width - cardWidth - DmSpace.s8)
+    func updateNSView(_ view: AnchorView, context: Context) {
+        view.onFrame = onFrame
+    }
 
-        return VStack(spacing: 0) {
+    final class AnchorView: NSView {
+        var onFrame: ((CGRect) -> Void)?
+
+        override func layout() {
+            super.layout()
+            guard let window, window.isVisible else { return }
+            onFrame?(window.convertToScreen(convert(bounds, to: nil)))
+        }
+    }
+}
+
+/// 下拉菜单的独立浮窗（与 NAS 助手 `DmMenuWindowController` 同一方案）：
+/// 无边框 nonactivating NSPanel、popUpMenu 层级、窗口级阴影。摆位贴触发器
+/// 下缘、下方放不下朝上开、越出屏幕往里收。关闭三路：选项命中（model.dismiss
+/// → 同步层收窗）、点外（监视器 → 直接收）、app 失活（通知 → 直接收）。
+@MainActor
+final class DropdownWindowController {
+    static let shared = DropdownWindowController()
+
+    private var panel: NSPanel?
+    private var monitors: [Any] = []
+    private var observers: [NSObjectProtocol] = []
+
+    func show(model: DropdownModel, request: DropdownModel.Request) {
+        makePanelIfNeeded()
+        guard let panel = self.panel else { return }
+        let cardWidth = max(request.minWidth, 132)
+        let rowHeight = DmControl.h28
+        let cardHeight = CGFloat(request.labels.count) * rowHeight + DmSpace.s8
+
+        let hosting = NSHostingView(rootView: menuContent(model, request))
+        hosting.frame = NSRect(x: 0, y: 0, width: cardWidth, height: cardHeight)
+
+        // 屏幕坐标（AppKit 左下原点）摆位：贴触发器下缘，下方放不下且上方
+        // 更宽裕时朝上开（与旧容器内翻转同一判据），越出屏幕往里收。
+        let a = request.anchor
+        var x = a.minX
+        var y = a.minY - DmSpace.s4 - cardHeight
+        if let screen = NSScreen.screens.first(where: { $0.frame.contains(a.origin) })
+            ?? NSScreen.main {
+            let vf = screen.visibleFrame
+            let spaceBelow = a.minY - vf.minY - DmSpace.s8
+            let spaceAbove = vf.maxY - a.maxY - DmSpace.s8
+            if spaceBelow < cardHeight && spaceAbove > spaceBelow {
+                y = a.maxY + DmSpace.s4
+            }
+            x = min(max(x, vf.minX + DmSpace.s8),
+                    max(vf.minX + DmSpace.s8, vf.maxX - cardWidth - DmSpace.s8))
+            y = min(max(y, vf.minY + DmSpace.s8),
+                    max(vf.minY + DmSpace.s8, vf.maxY - cardHeight - DmSpace.s8))
+        }
+        panel.contentView = hosting
+        panel.setFrame(NSRect(x: x, y: y, width: cardWidth, height: cardHeight),
+                       display: true)
+        panel.orderFront(nil)
+        startWatching()
+    }
+
+    func close() {
+        stopWatching()
+        panel?.orderOut(nil)
+    }
+
+    private func menuContent(_ model: DropdownModel, _ req: DropdownModel.Request) -> some View {
+        VStack(spacing: 0) {
             ForEach(req.labels.indices, id: \.self) { idx in
                 DropdownRow(
                     label: req.labels[idx],
@@ -893,7 +967,7 @@ struct DmDropdownOverlay: View {
                 }
             }
         }
-        .frame(width: cardWidth, height: cardHeight, alignment: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(
             RoundedRectangle(cornerRadius: DmRadius.r10).fill(Color.dmPanel2)
         )
@@ -902,7 +976,66 @@ struct DmDropdownOverlay: View {
                 .strokeBorder(Color.dmLine2, lineWidth: DmLine.hairline)
         )
         .dmShadowModal()
-        .offset(x: x, y: y)
+    }
+
+    private func makePanelIfNeeded() {
+        guard panel == nil else { return }
+        let p = NSPanel(contentRect: .zero,
+                        styleMask: [.borderless, .nonactivatingPanel],
+                        backing: .buffered, defer: false)
+        p.isFloatingPanel = true
+        // 与面板宿窗（.popUpMenu）同层级：show 每次重新 orderFront，浮层压在宿窗之上。
+        p.level = .popUpMenu
+        p.isOpaque = false
+        p.backgroundColor = .clear
+        // 卡面自带 modal 阴影在外浮窗里被边界裁掉，窗级阴影接手同一观感。
+        p.hasShadow = true
+        p.isReleasedWhenClosed = false
+        p.hidesOnDeactivate = false
+        p.becomesKeyOnlyIfNeeded = true
+        p.acceptsMouseMovedEvents = true
+        p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel = p
+    }
+
+    // MARK: 点外与失活
+
+    private func startWatching() {
+        stopWatching()
+        // 点外收菜单。点在面板里放行（选项行要吃这一击）；其余本 app 窗口
+        // 吞掉这一击（与旧遮罩「点哪儿都先收、不打到底下」同口径）；点在
+        // 状态栏（菜单栏图标）放行，让那条链路照常走。
+        if let token = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown]
+        ) { [weak self] event in
+            guard let self, let panel = self.panel, panel.isVisible,
+                  !panel.frame.contains(NSEvent.mouseLocation) else { return event }
+            MainActor.assumeIsolated { self.close() }
+            return event.window?.level == .statusBar ? event : nil
+        } {
+            monitors.append(token)
+        }
+        if let token = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, let panel = self.panel, panel.isVisible,
+                  event.keyCode == 53 else { return event }
+            MainActor.assumeIsolated { self.close() }
+            return nil
+        } {
+            monitors.append(token)
+        }
+        // app 失活（切走）就收 —— 面板浮窗不追窗走，留着反而错位。
+        observers.append(NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.close() }
+        })
+    }
+
+    private func stopWatching() {
+        for m in monitors { NSEvent.removeMonitor(m) }
+        monitors.removeAll()
+        for o in observers { NotificationCenter.default.removeObserver(o) }
+        observers.removeAll()
     }
 }
 
@@ -941,33 +1074,6 @@ private struct DropdownRow: View {
         .onHover { isHovered = $0 }
         .onTapGesture { onPick() }
     }
-}
-
-/// 读全局坐标 frame：DmMenuPicker 记触发器位置用。
-///
-/// 为什么不直接 `.background(GeometryReader)` + `onPreferenceChange`：
-/// 这套老写法在 macOS 26 的 SwiftUI 上实测只送来 `.zero`（2026-10-10 最小
-/// 复现证实，触发器 frame 恒为零 → 菜单卡锚点归零、整体漂到窗口左上角）。
-/// macOS 15 起改走 `onGeometryChange`；旧系统保留老写法（那边行为正常）。
-extension View {
-    @ViewBuilder
-    func dmGlobalFrame(onChange action: @escaping (CGRect) -> Void) -> some View {
-        if #available(macOS 15.0, *) {
-            onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }, action: action)
-        } else {
-            background(
-                GeometryReader { geo in
-                    Color.clear.preference(key: DmGlobalFrameKey.self, value: geo.frame(in: .global))
-                }
-            )
-            .onPreferenceChange(DmGlobalFrameKey.self, perform: action)
-        }
-    }
-}
-
-private struct DmGlobalFrameKey: PreferenceKey {
-    static var defaultValue: CGRect = .zero
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) { value = nextValue() }
 }
 
 /// 统一行情头部：标签 + 状态 → 大价格 → 涨跌 + 次要信息 + 行情时间

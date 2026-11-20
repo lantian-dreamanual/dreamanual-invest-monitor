@@ -98,7 +98,7 @@ struct AlertRuleList: View {
                 HStack(spacing: DmSpace.s6) {
                     LucideIcon("bell-off", size: DmIcon.i12)
                         .foregroundColor(Color.dmInk2)
-                    Text("暂无预警规则，点击 + 添加")
+                    Text("还没有预警规则，点击 + 添加")
                         .font(.system(size: DmText.t12))
                         .foregroundColor(Color.dmInk2)
                 }
@@ -454,7 +454,7 @@ struct AddAlertSheet: View {
                         .frame(width: 156)
                     }
                     Spacer(minLength: DmSpace.s12)
-                    FormSection("阈值") {
+                    FormSection("阈值", required: true) {
                         FormTextField(placeholder: thresholdPlaceholder, text: $threshold, width: 84)
                     }
                     Spacer(minLength: DmSpace.s12)
@@ -475,7 +475,7 @@ struct AddAlertSheet: View {
             // 复位价：可选。留空 = 交回 0.5% 兜底迟滞带
             FormSection("复位价") {
                 VStack(alignment: .leading, spacing: DmSpace.s4) {
-                    FormTextField(placeholder: "可选", text: $resetThreshold)
+                    FormTextField(placeholder: "", text: $resetThreshold)
                     HStack(spacing: DmSpace.s4) {
                         LucideIcon(resetError == nil ? "info" : "warning", size: DmIcon.i10)
                             .foregroundColor(resetError == nil ? Color.dmInk2 : Color.dmDanger)
@@ -486,8 +486,8 @@ struct AddAlertSheet: View {
                 }
             }
 
-            FormSection("提醒内容") {
-                FormTextField(placeholder: "如：第1档止盈 · 建议卖1/3", text: $label)
+            FormSection("提醒内容", required: true) {
+                FormTextField(placeholder: "如：第1档止盈，建议卖1/3", text: $label)
             }
 
             },
@@ -673,7 +673,7 @@ struct EditAlertSheet: View {
                         .frame(width: 156)
                     }
                     Spacer(minLength: DmSpace.s12)
-                    FormSection("阈值") {
+                    FormSection("阈值", required: true) {
                         FormTextField(placeholder: thresholdPlaceholder, text: $threshold, width: 84)
                     }
                     Spacer(minLength: DmSpace.s12)
@@ -694,7 +694,7 @@ struct EditAlertSheet: View {
             // 复位价：可选。留空 = 交回 0.5% 兜底迟滞带
             FormSection("复位价") {
                 VStack(alignment: .leading, spacing: DmSpace.s4) {
-                    FormTextField(placeholder: "可选", text: $resetThreshold)
+                    FormTextField(placeholder: "", text: $resetThreshold)
                     HStack(spacing: DmSpace.s4) {
                         LucideIcon(resetError == nil ? "info" : "warning", size: DmIcon.i10)
                             .foregroundColor(resetError == nil ? Color.dmInk2 : Color.dmDanger)
@@ -705,8 +705,8 @@ struct EditAlertSheet: View {
                 }
             }
 
-            FormSection("提醒内容") {
-                FormTextField(placeholder: "如：第1档止盈 · 建议卖1/3", text: $label)
+            FormSection("提醒内容", required: true) {
+                FormTextField(placeholder: "如：第1档止盈，建议卖1/3", text: $label)
             }
 
             },

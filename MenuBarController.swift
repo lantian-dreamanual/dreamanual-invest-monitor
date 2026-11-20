@@ -164,7 +164,7 @@ final class MenuBarController: NSObject, ObservableObject {
 
         if source == "gold" {
             // 黄金
-            guard let g = gold else { button.title = "--"; return }
+            guard let g = gold else { button.title = "—"; return }
             let title: String
             if goldMarketStatus == .trading || goldMarketStatus == .delayed {
                 let arrow = g.changePct >= 0 ? "▲" : "▼"
@@ -179,7 +179,7 @@ final class MenuBarController: NSObject, ObservableObject {
         } else {
             // 板块指数
             guard let s = allSectors.first(where: { $0.code == source }) ?? sector
-            else { button.title = "--"; return }
+            else { button.title = "—"; return }
             let title: String
             if stockMarketStatus == .trading {
                 let arrow = s.changePct >= 0 ? "▲" : "▼"
@@ -337,7 +337,7 @@ final class MenuBarController: NSObject, ObservableObject {
     ///
     /// 从未拿到过行情（quoteAt 为 nil）时归 .trading 而不是 .delayed ——
     /// 「市场状态」与「数据有没有到手」是两件事，后者由 errorMessage 与
-    /// 预警规则行的「未生效 · 无行情」表达。否则每次启动的头几秒都在喊延迟。
+    /// 预警规则行的「待判定，无行情」表达。否则每次启动的头几秒都在喊延迟。
     private func sessionStatus(_ quoteAt: Date?) -> MarketStatus {
         guard let at = quoteAt else { return .trading }
         return DataFreshness.isStale(at) ? .delayed : .trading
@@ -727,7 +727,7 @@ final class MenuBarController: NSObject, ObservableObject {
             }
         }
         if unjudgedRules[rule.id] != nil {
-            return AlertRowState(kind: .dead, text: "待判定 · 无行情")
+            return AlertRowState(kind: .dead, text: "待判定，无行情")
         }
         if let ev = alertEvents[rule.id] {
             return AlertRowState(kind: .last, text: "最近判定 \(ev.pdate)")

@@ -24,7 +24,7 @@ enum DataFreshness {
     ///
     /// - 拿不到行情时间且处于交易时段 → 「无行情时间」（转橙）
     /// - 非交易时段 → 只给「截至 MM-DD HH:mm」，不判陈旧
-    /// - 交易时段超阈值 → 追加「· 数据延迟 N 分钟」并转橙
+    /// - 交易时段超阈值 → 追加「数据延迟 N 分钟」并转橙
     static func display(quoteAt: Date?, status: MarketStatus, now: Date = Date()) -> Display? {
         let inSession = (status == .trading || status == .delayed)
         guard let at = quoteAt else {
@@ -34,7 +34,7 @@ enum DataFreshness {
         guard inSession else { return Display(text: "截至 \(stamp)", isStale: false) }
         let lag = now.timeIntervalSince(at)
         guard lag > staleAfter else { return Display(text: "截至 \(stamp)", isStale: false) }
-        return Display(text: "截至 \(stamp) · 数据延迟 \(Int(lag / 60)) 分钟", isStale: true)
+        return Display(text: "截至 \(stamp)，数据延迟 \(Int(lag / 60)) 分钟", isStale: true)
     }
 
     /// 净值日期（只有 YYYY-MM-DD，无时刻）→ 「净值 09-21」
