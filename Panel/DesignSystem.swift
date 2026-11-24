@@ -65,7 +65,7 @@ struct StatusDescriptor: Equatable {
 
     /// 状态徽章字色（2026-10-09 徽章改版）：
     /// live 用强调亮档（yellow-400），warn 用族加深档，quiet 用中性次级。
-    /// 族 300（ink）压徽章底读感发虚，用户反馈加深一档后全族换 ink-strong。
+    /// 族 300（ink）压徽章底读感发虚，字色全族取加深档 ink-strong。
     var color: Color {
         switch tone {
         case .live: return .dmAccent2
@@ -744,7 +744,7 @@ final class DropdownModel: ObservableObject {
 /// （field 样式套字段壳，用于面板头部这类悬空位置）。
 ///
 /// 系统 `.pickerStyle(.menu)` 自带 bezel —— 叠在 SettingsCard / DmModalCard
-/// 上像两张卡摞放（2026-10-09 用户拍板去掉）。点开的是自绘浮层
+/// 上像两张卡摞放。点开的是自绘浮层
 ///（`DropdownModel` + 根部 `DmDropdownOverlay`），选中有勾、悬停提亮。
 struct DmMenuPicker<Value: Hashable>: View {
     @Binding var selection: Value
@@ -842,7 +842,7 @@ struct DmMenuPicker<Value: Hashable>: View {
         dropdown.toggle(
             // 下限 132 与菜单卡同一值（DmDropdownOverlay.menuCard）—— 触发器
             // 盒的 minWidth 也是 132，三处一致菜单卡才与触发器严格同宽
-            //（2026-10-10 用户反馈：卡比盒宽 18px 读作两个控件）。bare 触发器
+            //（卡比盒宽 18px 会读作两个控件）。bare 触发器
             // 内容自适应可能更窄，由这个下限兜住。
             anchor: triggerFrame,
             minWidth: max(triggerFrame.width, 132),
@@ -1133,7 +1133,7 @@ struct PriceHeader: View {
 /// 取代系统 `.sheet` —— macOS 26 的 sheet 由系统玻璃外壳包一圈边（面板内实测
 /// 遮罩外那圈 rgb(60~74)），与自绘卡片口径（panel 底 / line 描边 / r16 /
 /// shadow-modal）是两种形态；且主面板是 400 宽的无边框 NSPanel，系统外壳的
-/// 双层观感在它上面尤其突兀（2026-10-09 用户反馈「面板外侧又包了一圈」）。
+/// 双层观感在它上面尤其突兀。
 struct DmModal<Modal: View>: ViewModifier {
     let isPresented: Bool
     let onDismiss: () -> Void

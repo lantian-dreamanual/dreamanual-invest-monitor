@@ -171,7 +171,7 @@ struct MainPanelView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // 板块切换选择器（字段壳：悬空在面板头部，裸触发没依托 —— 2026-10-09 用户反馈）
+    // 板块切换选择器（字段壳：悬空在面板头部，裸触发没依托）
     private var sectorPicker: some View {
         DmMenuPicker(
             selection: $controller.currentSectorCode,
